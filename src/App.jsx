@@ -136,14 +136,25 @@ function App({ user, token, onLogout }) {
     }).catch(error => notify('Answer review shown, but could not save it: ' + error.message));
   }
 
-  function nextQuestion() {
+  async function nextQuestion() {
     if (questionIndex + 1 >= Number(interview.count)) {
-      const score = answers.length ? Math.round(answers.reduce((sum, item) => sum + (item?.feedback?.score || 0), 0) / answers.filter(Boolean).length) : (feedback?.score ?? 0);
+      const completedAnswers = [...answers];
+      if (answer.trim()) {
+        completedAnswers[questionIndex] = {
+          question: currentQuestions[questionIndex % currentQuestions.length],
+          answer: answer.trim(),
+          feedback: feedback ?? completedAnswers[questionIndex]?.feedback ?? null
+        };
+      }
+      const scoredAnswers = completedAnswers.filter(item => item?.feedback?.score != null);
+      const score = scoredAnswers.length
+        ? Math.round(scoredAnswers.reduce((sum, item) => sum + item.feedback.score, 0) / scoredAnswers.length)
+        : 0;
       const durationSeconds = Math.max(1, Math.round((Date.now() - interview.startedAt) / 1000));
       try {
         await apiRequest(`/api/interviews/${interview.id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ status: 'completed', overallScore: score, durationSeconds, answers })
+          body: JSON.stringify({ status: 'completed', overallScore: score, durationSeconds, answers: completedAnswers })
         });
         const data = await apiRequest('/api/interviews');
         setSessions((data.interviews || []).map(item => ({
