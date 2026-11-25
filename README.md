@@ -1,31 +1,37 @@
 # InterviewOS · AI Mock Interview Coach
 
-A responsive mock-interview practice application. The first milestone establishes the React dashboard, interview setup and question flow, a transparent demo answer-review experience, and starter API/AI services.
+A responsive mock-interview practice application. The current milestone includes the React dashboard, interview setup and question flow, transparent demo answer review, and starter API/AI services.
 
-> **Current status: foundation / demo milestone.** The UI's answer review is heuristic demo feedback, not a real AI evaluation. Authentication, persistent interview history, real speech transcription, model-powered evaluation, and executable coding challenges are not implemented yet.
+> **Current status: early development.** The UI's answer review is heuristic demo feedback, not a real AI evaluation. Authentication and protected interview API endpoints are scaffolded, but still need integration tests and production hardening. Voice transcription, model-powered evaluation, and executable coding challenges are not implemented yet.
 
 ## Stack
 
-- Frontend: React 18, Vite, Lucide React, Recharts dependency
-- API: Node.js, Express, Zod, Helmet
-- AI service: Python, FastAPI
-- Database: MongoDB connection scaffold (persistence models/routes are a later milestone)
+- Frontend: React 18, Vite, Lucide React
+- API: Node.js, Express, Zod, Helmet, JWT, bcryptjs
+- Database: MongoDB with Mongoose user and interview models
+- AI service: Python, FastAPI (currently heuristic demo response)
 
 ## Repository layout
 
 ```text
 .
 ├── src/                 # React application
-├── server/              # Express API
+├── server/
+│   └── src/
+│       ├── middleware/  # JWT authentication middleware
+│       ├── models/      # User and interview schemas
+│       └── routes/      # Auth and interview endpoints
 ├── ai-service/          # FastAPI review service
-├── index.html
-├── package.json
-└── vite.config.js
+└── .github/workflows/   # Build and syntax checks
 ```
 
-## Run the frontend
+## Requirements
 
-Requirements: Node.js 20+ and npm.
+- Node.js 20+
+- Python 3.10+
+- MongoDB 6+ (local or hosted)
+
+## Run the frontend
 
 ```bash
 npm install
@@ -42,10 +48,30 @@ In a second terminal:
 cd server
 npm install
 cp .env.example .env
+```
+
+Set `JWT_SECRET` to a random secret of at least 32 characters and set `MONGODB_URI` to your MongoDB connection string. Then run:
+
+```bash
 npm run dev
 ```
 
 API health check: http://localhost:4000/api/health.
+
+### API endpoints currently available
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/health` | API health |
+| POST | `/api/auth/register` | Create account |
+| POST | `/api/auth/login` | Sign in |
+| GET | `/api/interviews` | List signed-in user's sessions |
+| POST | `/api/interviews` | Create an interview |
+| GET | `/api/interviews/:id` | Read own interview |
+| PATCH | `/api/interviews/:id` | Update own interview |
+| POST | `/api/review` | Request demo answer review |
+
+Protected endpoints require `Authorization: Bearer <token>`.
 
 ## Run the Python AI-service scaffold
 
@@ -66,31 +92,34 @@ Health check: http://localhost:8000/health.
 
 - Responsive dark/light dashboard and navigation
 - Interview setup for role, interview type, level, and question count
-- Three-question practice flow for Technical, HR, and Mixed tracks
+- Technical, HR, and Mixed practice question tracks
 - Text answer entry, word count, review and next-question flow
-- Clear demo feedback with explicit heuristic-mode disclosure
-- Recent session list held in frontend memory
-- Starter Express review proxy and FastAPI demo endpoint
+- Clearly disclosed heuristic demo feedback
+- Starter registration/login endpoints with bcrypt password hashing and short-lived JWTs
+- Protected interview CRUD endpoints scoped to the authenticated user
+- FastAPI demo review endpoint and Express proxy
 
 ## Important limitations
 
-- Demo sessions are held in memory and reset on page reload.
-- No production authentication or account system yet.
-- No MongoDB persistence yet; only the connection scaffold exists.
-- No real LLM provider/Ollama integration yet.
+- Frontend demo sessions are held in memory and reset on page reload.
+- The current frontend is not yet wired to the authentication and interview APIs.
+- API authentication and database routes have not yet received automated integration/security testing.
+- No refresh-token or password-reset flow yet.
+- No real LLM/Ollama integration yet.
 - No audio recording, Whisper transcription, or real-time voice interview yet.
-- No code execution engine. Do not run untrusted code on the API server.
+- No code execution engine. Never execute untrusted code in the API process.
 - The current score is a simple heuristic and must not be used as a hiring decision or objective assessment.
 
 ## Development roadmap
 
-1. Foundation UI and local demo flow (current)
-2. Data models, authentication, protected routes, and persistent history
-3. AI provider abstraction with Ollama/local model support and evaluation tests
-4. Audio capture, upload limits, transcription pipeline, and privacy controls
-5. Coding workspace with isolated execution service and test cases
-6. Analytics, reports, accessibility, security review, and end-to-end tests
+1. Foundation UI and service scaffolding (current)
+2. Connect frontend authentication, protected routes, and persistent interview history
+3. Add tests and harden authentication, API validation, and data access
+4. Add local-model provider abstraction (Ollama) and evaluation quality tests
+5. Add audio capture, upload limits, transcription pipeline, and privacy controls
+6. Add coding workspace with isolated execution service and test cases
+7. Add analytics, reports, accessibility, security review, and end-to-end tests
 
 ## Security notes
 
-Never commit real secrets. Copy `.env.example` to `.env` and use strong, unique values. Production deployment requires HTTPS, strict CORS, rate limiting, secure token storage, request validation, upload size limits, and isolated code execution.
+Never commit real secrets. Copy `.env.example` to `.env` and use strong, unique values. Production deployment requires HTTPS, strict CORS, rate limiting, secure token storage, request validation, upload size limits, dependency scanning, and isolated code execution. Do not use the demo score to assess real candidates.
