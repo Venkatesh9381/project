@@ -3,9 +3,12 @@ import os
 import urllib.error
 import urllib.request
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from typing import Literal
+
+load_dotenv()
 
 app = FastAPI(title="InterviewOS AI Service", version="0.2.0")
 
