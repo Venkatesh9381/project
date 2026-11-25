@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import { z } from 'zod';
 import Interview from '../models/Interview.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -28,6 +29,7 @@ router.post('/', async (req, res, next) => {
 });
 
 router.get('/:id', async (req, res, next) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid interview ID' });
   try {
     const interview = await Interview.findOne({ _id: req.params.id, user: req.user.id });
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
@@ -36,6 +38,7 @@ router.get('/:id', async (req, res, next) => {
 });
 
 router.patch('/:id', async (req, res, next) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ error: 'Invalid interview ID' });
   try {
     const schema = z.object({
       status: z.enum(['in_progress', 'completed', 'abandoned']).optional(),
