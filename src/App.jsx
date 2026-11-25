@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, Bell, BookOpen,
   BrainCircuit, CalendarDays, Check, ChevronDown, CircleHelp, Clock3,
@@ -45,6 +45,10 @@ function App({ user, token, onLogout }) {
   const [answers, setAnswers] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [reviewing, setReviewing] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const [showSetup, setShowSetup] = useState(false);
   const [interview, setInterview] = useState(null);
   const [answer, setAnswer] = useState('');
@@ -118,6 +122,63 @@ function App({ user, token, onLogout }) {
       setShowSetup(false);
       setActive('Mock interview');
     } catch (error) { notify(error.message); }
+  }
+
+  useEffect(() => () => {
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop();
+  }, []);
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      notify('Audio recording is not supported in this browser. Try a recent version of Chrome or Edge.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const preferredType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'].find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = event => { if (event.data?.size) audioChunksRef.current.push(event.data); };
+      recorder.onerror = () => notify('Recording failed. Check microphone permissions and try again.');
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        audioChunksRef.current = [];
+        if (!blob.size) { notify('No audio was captured. Please try again.'); return; }
+        setTranscribing(true);
+        try {
+          const form = new FormData();
+          const extension = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
+          form.append('audio', blob, 'answer.' + extension);
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + token },
+            body: form
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || data.detail || 'Transcription failed');
+          const transcript = (data.text || '').trim();
+          if (!transcript) throw new Error('No speech was detected. Try again.');
+          setAnswer(previous => previous.trim() ? previous.trim() + ' ' + transcript : transcript);
+          notify('Local Whisper transcription added to your answer.');
+        } catch (error) {
+          notify(error.message || 'Could not transcribe this recording.');
+        } finally { setTranscribing(false); }
+      };
+      recorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch (error) {
+      notify(error.name === 'NotAllowedError' ? 'Microphone permission was denied.' : 'Could not access the microphone. Check that it is connected and available.');
+    }
+  }
+
+  function stopRecording() {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+      setRecording(false);
+    }
   }
 
   async function reviewAnswer() {
@@ -242,7 +303,7 @@ function App({ user, token, onLogout }) {
           {active === 'Mock interview' && interview ? (
             <section className="interview-screen">
               <div className="page-heading"><div><div className="eyebrow"><span className="live-dot"/> INTERVIEW IN PROGRESS · DEMO</div><h1>{interview.role}</h1><p>{interview.type} interview <span className="muted-dot">·</span> {interview.level} <span className="muted-dot">·</span> Question {questionIndex + 1} of {interview.count}</p></div><button className="btn btn-ghost" onClick={() => { setInterview(null); setActive('Overview'); }}>End interview</button></div>
-              <div className="interview-grid"><div className="panel question-panel"><div className="panel-top"><span className="label-pill"><Sparkles size={13}/> QUESTION {questionIndex + 1}</span><span className="time-label"><Clock3 size={14}/> Take your time</span></div><h2>{currentQuestions[questionIndex % currentQuestions.length]}</h2><p className="helper-text">Structure your answer clearly. Use a real example where possible.</p><label className="field-label" htmlFor="answer">YOUR ANSWER</label><textarea id="answer" className="answer-area" placeholder="Start typing your answer here..." value={answer} onChange={event => setAnswer(event.target.value)}/><div className="answer-footer"><span>{answer.trim() ? answer.trim().split(/\s+/).length : 0} words</span><button className="btn btn-primary" onClick={reviewAnswer} disabled={reviewing}><Sparkles size={15}/> {reviewing ? "Reviewing..." : "Review my answer"}</button></div>{feedback && <div className="feedback-card"><div className="feedback-head"><div><span className="eyebrow">{feedback.mode === "ollama" ? "LOCAL OLLAMA AI FEEDBACK" : "HEURISTIC DEMO FEEDBACK"}</span><h3>Answer review</h3></div><div className="score-ring">{feedback.score}<small>/100</small></div></div><div className="feedback-columns"><div><strong className="good"><Check size={14}/> What worked</strong>{feedback.strengths.map(text => <p key={text}>{text}</p>)}</div><div><strong className="needs"><Target size={14}/> Improve next</strong>{feedback.improve.map(text => <p key={text}>{text}</p>)}</div></div><div className="sample-answer"><strong>Try this approach</strong><p>{feedback.sample}</p></div></div>}<div className="question-actions"><button className="btn btn-ghost" onClick={() => { setAnswer(''); setFeedback(null); }}>Clear answer</button><button className="btn btn-primary" onClick={nextQuestion}>{questionIndex + 1 >= Number(interview.count) ? 'Finish interview' : 'Next question'} <ArrowRight size={15}/></button></div></div><div className="panel coach-panel"><div className="coach-orb"><div className="orb-core"><BrainCircuit size={34}/></div><span className="orb-wave wave-one"/><span className="orb-wave wave-two"/></div><h3>Your AI coach</h3><p>I'm here to help you practise. Speak naturally or type your answer.</p><div className="coach-status"><span className="status-dot"/> Text practice active</div><div className="coach-tip"><Sparkles size={16}/><div><strong>Quick tip</strong><p>For experience questions, try the STAR method: Situation, Task, Action, Result.</p></div></div><div className="demo-note"><ShieldCheck size={15}/> Ollama runs locally when configured. If it is unavailable, the service clearly labels its heuristic demo fallback.</div></div></div>
+              <div className="interview-grid"><div className="panel question-panel"><div className="panel-top"><span className="label-pill"><Sparkles size={13}/> QUESTION {questionIndex + 1}</span><span className="time-label"><Clock3 size={14}/> Take your time</span></div><h2>{currentQuestions[questionIndex % currentQuestions.length]}</h2><p className="helper-text">Structure your answer clearly. Use a real example where possible.</p><label className="field-label" htmlFor="answer">YOUR ANSWER</label><textarea id="answer" className="answer-area" placeholder="Start typing your answer here..." value={answer} onChange={event => setAnswer(event.target.value)}/><div className="answer-footer"><span>{answer.trim() ? answer.trim().split(/\s+/).length : 0} words</span><div className="answer-controls">{recording ? <button className="btn btn-recording" onClick={stopRecording}><span className="recording-dot"/> Stop recording</button> : <button className="btn btn-ghost" onClick={startRecording} disabled={transcribing || reviewing}><Mic2 size={15}/> Record answer</button>}<button className="btn btn-primary" onClick={reviewAnswer} disabled={reviewing || recording || transcribing}><Sparkles size={15}/> {reviewing ? "Reviewing..." : "Review my answer"}</button></div></div>{recording && <p className="recording-status">Recording in progress. Select Stop recording when you finish.</p>}{transcribing && <p className="recording-status">Transcribing locally with Whisper. Please wait...</p>}{feedback && <div className="feedback-card"><div className="feedback-head"><div><span className="eyebrow">{feedback.mode === "ollama" ? "LOCAL OLLAMA AI FEEDBACK" : "HEURISTIC DEMO FEEDBACK"}</span><h3>Answer review</h3></div><div className="score-ring">{feedback.score}<small>/100</small></div></div><div className="feedback-columns"><div><strong className="good"><Check size={14}/> What worked</strong>{feedback.strengths.map(text => <p key={text}>{text}</p>)}</div><div><strong className="needs"><Target size={14}/> Improve next</strong>{feedback.improve.map(text => <p key={text}>{text}</p>)}</div></div><div className="sample-answer"><strong>Try this approach</strong><p>{feedback.sample}</p></div></div>}<div className="question-actions"><button className="btn btn-ghost" onClick={() => { setAnswer(''); setFeedback(null); }}>Clear answer</button><button className="btn btn-primary" onClick={nextQuestion}>{questionIndex + 1 >= Number(interview.count) ? 'Finish interview' : 'Next question'} <ArrowRight size={15}/></button></div></div><div className="panel coach-panel"><div className="coach-orb"><div className="orb-core"><BrainCircuit size={34}/></div><span className="orb-wave wave-one"/><span className="orb-wave wave-two"/></div><h3>Your AI coach</h3><p>I'm here to help you practise. Type your answer or record it for local speech-to-text.</p><div className="coach-status"><span className="status-dot"/> Text and voice practice</div><div className="coach-tip"><Sparkles size={16}/><div><strong>Quick tip</strong><p>For experience questions, try the STAR method: Situation, Task, Action, Result.</p></div></div><div className="demo-note"><ShieldCheck size={15}/> Voice transcription uses optional local Whisper. Answer feedback uses Ollama when available, otherwise a labelled demo fallback.</div></div></div>
             </section>
           ) : active === 'Mock interview' ? (
             <section><div className="page-heading"><div><div className="eyebrow">PRACTISE WITH PURPOSE</div><h1>Mock interview</h1><p>Set up a focused session that matches your next opportunity.</p></div></div><div className="setup-layout"><div className="panel setup-panel"><div className="panel-title"><div className="title-icon violet"><Mic2 size={19}/></div><div><h2>Configure your session</h2><p>Choose what you want to practise today.</p></div></div><div className="form-grid"><label>Target role<input value={settings.role} onChange={e => setSettings({...settings, role:e.target.value})}/></label><label>Interview type<select value={settings.type} onChange={e => setSettings({...settings, type:e.target.value})}><option>Technical</option><option>HR</option><option>Mixed</option></select></label><label>Experience level<select value={settings.level} onChange={e => setSettings({...settings, level:e.target.value})}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label><label>Number of questions<select value={settings.count} onChange={e => setSettings({...settings, count:e.target.value})}><option value="3">3 questions · Quick</option><option value="5">5 questions · Standard</option></select></label></div><div className="session-info"><div><Clock3 size={17}/><span><strong>About 15–25 minutes</strong><small>Answer at your own pace</small></span></div><div><ShieldCheck size={17}/><span><strong>Private practice</strong><small>Demo data stays in this session</small></span></div></div><button className="btn btn-primary start-btn" disabled={!settings.role.trim()} onClick={startInterview}><Play size={16} fill="currentColor"/> Start practice session <ArrowRight size={16}/></button></div><div className="panel setup-aside"><div className="aside-illustration"><div className="illustration-card card-back"><span/><span/><span/></div><div className="illustration-card card-front"><Sparkles size={20}/><strong>Be ready<br/>for anything.</strong><small>One question at a time</small></div></div><h3>Make practice count</h3><p>Give specific examples, explain your thinking, and reflect on the feedback after each answer.</p><div className="tip-row"><Check size={15}/> No pressure, just progress</div><div className="tip-row"><Check size={15}/> Feedback after every answer</div><div className="tip-row"><Check size={15}/> Track improvement over time</div></div></div></section>
