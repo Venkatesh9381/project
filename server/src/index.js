@@ -22,8 +22,9 @@ const audioUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, callback) => {
+    const normalizedMime = file.mimetype.split(';')[0].trim().toLowerCase();
     const allowed = new Set(['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'audio/aac']);
-    if (!allowed.has(file.mimetype)) {
+    if (!allowed.has(normalizedMime)) {
       const error = new Error('Unsupported audio format. Use WebM, OGG, WAV, MP3, MP4 or AAC.');
       error.status = 415;
       return callback(error);
