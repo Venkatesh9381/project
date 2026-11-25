@@ -2,15 +2,32 @@ import json
 import os
 import urllib.error
 import urllib.request
+import tempfile
+from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from typing import Literal
 
 load_dotenv()
 
-app = FastAPI(title="InterviewOS AI Service", version="0.2.0")
+app = FastAPI(title="InterviewOS AI Service", version="0.3.0")
+_whisper_model = None
+
+
+def get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        try:
+            from faster_whisper import WhisperModel
+        except ImportError as error:
+            raise RuntimeError("Install ai-service/requirements-voice.txt to enable local Whisper transcription.") from error
+        model_name = os.getenv("WHISPER_MODEL", "base")
+        device = os.getenv("WHISPER_DEVICE", "cpu")
+        compute_type = os.getenv("WHISPER_COMPUTE_TYPE", "int8" if device == "cpu" else "float16")
+        _whisper_model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    return _whisper_model
 
 
 class ReviewRequest(BaseModel):
@@ -95,6 +112,51 @@ Candidate answer: {payload.answer}
     }
 
 
+@app.post("/transcribe")
+async def transcribe(file: UploadFile = File(...)):
+    allowed = {"audio/webm", "audio/ogg", "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/aac"}
+    if file.content_type not in allowed:
+        raise HTTPException(status_code=415, detail="Unsupported audio format.")
+    audio = await file.read(25 * 1024 * 1024 + 1)
+    if not audio:
+        raise HTTPException(status_code=400, detail="The audio recording is empty.")
+    if len(audio) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio recordings must be 25 MB or smaller.")
+
+    suffix_by_type = {
+        "audio/webm": ".webm", "audio/ogg": ".ogg", "audio/wav": ".wav",
+        "audio/x-wav": ".wav", "audio/mpeg": ".mp3", "audio/mp4": ".m4a",
+        "audio/aac": ".aac"
+    }
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix_by_type[file.content_type]) as temp:
+            temp.write(audio)
+            temp_path = temp.name
+        model = get_whisper_model()
+        segments, info = model.transcribe(temp_path, beam_size=5, vad_filter=True)
+        transcript = " ".join(segment.text.strip() for segment in segments).strip()
+        if not transcript:
+            raise HTTPException(status_code=422, detail="No speech was detected. Try recording again in a quieter place.")
+        return {
+            "text": transcript,
+            "language": info.language,
+            "language_probability": round(float(info.language_probability), 3),
+            "model": os.getenv("WHISPER_MODEL", "base"),
+            "mode": "local-whisper"
+        }
+    except HTTPException:
+        raise
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error))
+    except Exception:
+        raise HTTPException(status_code=422, detail="Could not transcribe this recording. Try a clearer recording.")
+    finally:
+        await file.close()
+        if temp_path and Path(temp_path).exists():
+            Path(temp_path).unlink()
+
+
 @app.get("/health")
 def health():
     return {
@@ -102,7 +164,8 @@ def health():
         "service": "interviewos-ai",
         "provider": "ollama",
         "model": os.getenv("OLLAMA_MODEL", "qwen2.5:3b"),
-        "fallback": "heuristic-demo"
+        "fallback": "heuristic-demo",
+        "transcription": "local-whisper (optional faster-whisper install)"
     }
 
 
