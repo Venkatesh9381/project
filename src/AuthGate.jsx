@@ -19,7 +19,7 @@ export default function AuthGate({ children }) {
 
   if (token && user) {
     return typeof children === 'function'
-      ? children({ user, onLogout: () => { sessionStorage.removeItem('interviewos_token'); sessionStorage.removeItem('interviewos_user'); setToken(''); setUser(null); } })
+      ? children({ user, token, onLogout: () => { sessionStorage.removeItem('interviewos_token'); sessionStorage.removeItem('interviewos_user'); setToken(''); setUser(null); } })
       : children;
   }
 
