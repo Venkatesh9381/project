@@ -2,7 +2,7 @@
 
 A responsive mock-interview practice application for technical, HR and mixed interviews.
 
-> **Current status: active development.** Registration/login and authenticated interview persistence are connected to the API. Answer review now calls the local AI service, which attempts Ollama and explicitly falls back to heuristic demo feedback when the local model is unavailable. The latest code is still undergoing CI and integration verification. Voice transcription and coding execution are not implemented.
+> **Current status: active development.** Registration/login and authenticated interview persistence are connected to the API. Answer review calls the local AI service, which attempts Ollama and explicitly falls back to heuristic demo feedback when the local model is unavailable. Browser microphone capture and an optional local Whisper transcription endpoint are implemented, but still require hardware-level verification. Coding execution is not implemented.
 
 ## Stack
 
@@ -173,10 +173,10 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 1. Core dashboard and API foundation
 2. Frontend authentication and interview persistence
 3. Local Ollama review integration
-4. Automated API, AI fallback, security and end-to-end tests
-5. Voice capture, upload limits, transcription and privacy controls
-6. Coding workspace with isolated execution and test cases
-7. Real analytics, reports, accessibility, security review and handover package
+4. Complete MongoDB, Ollama and microphone/Whisper integration testing
+5. Build the coding workspace with isolated execution and test cases
+6. Replace illustrative dashboard data with real analytics and reports
+7. Accessibility, security review and final handover package
 
 ## Security notes
 
