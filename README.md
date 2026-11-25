@@ -1,27 +1,27 @@
 # InterviewOS · AI Mock Interview Coach
 
-A responsive mock-interview practice application. The current milestone includes the React dashboard, interview setup and question flow, transparent demo answer review, and starter API/AI services.
+A responsive mock-interview practice application for technical, HR and mixed interviews.
 
-> **Current status: early development.** The UI's answer review is heuristic demo feedback, not a real AI evaluation. Authentication and protected interview API endpoints are scaffolded, but still need integration tests and production hardening. Voice transcription, model-powered evaluation, and executable coding challenges are not implemented yet.
+> **Current status: active development.** Registration/login and authenticated interview persistence are connected to the API. Answer review now calls the local AI service, which attempts Ollama and explicitly falls back to heuristic demo feedback when the local model is unavailable. The latest code is still undergoing CI and integration verification. Voice transcription and coding execution are not implemented.
 
 ## Stack
 
 - Frontend: React 18, Vite, Lucide React
 - API: Node.js, Express, Zod, Helmet, JWT, bcryptjs
-- Database: MongoDB with Mongoose user and interview models
-- AI service: Python, FastAPI (currently heuristic demo response)
+- Database: MongoDB with Mongoose
+- AI service: Python, FastAPI, Ollama (local model), transparent heuristic fallback
 
 ## Repository layout
 
 ```text
 .
-├── src/                 # React application
+├── src/                 # React application and auth gate
 ├── server/
 │   └── src/
-│       ├── middleware/  # JWT authentication middleware
+│       ├── middleware/  # JWT authentication
 │       ├── models/      # User and interview schemas
 │       └── routes/      # Auth and interview endpoints
-├── ai-service/          # FastAPI review service
+├── ai-service/          # FastAPI + local Ollama review provider
 └── .github/workflows/   # Build and syntax checks
 ```
 
@@ -30,8 +30,87 @@ A responsive mock-interview practice application. The current milestone includes
 - Node.js 20+
 - Python 3.10+
 - MongoDB 6+ (local or hosted)
+- Ollama installed locally for model-powered feedback (optional; heuristic fallback works without it)
 
-## Run the frontend
+## 1. Configure and run MongoDB
+
+Start a local MongoDB server, or create a database in a hosted MongoDB service. Keep the connection string private.
+
+## 2. Run the API
+
+In a terminal:
+
+```bash
+cd server
+npm install
+```
+
+Copy `.env.example` to `.env` and configure:
+
+- `MONGODB_URI`: your MongoDB connection string
+- `JWT_SECRET`: a unique random secret of at least 32 characters
+- `CLIENT_ORIGIN`: `http://localhost:5173`
+- `AI_SERVICE_URL`: `http://127.0.0.1:8000`
+
+Then start the API:
+
+```bash
+npm run dev
+```
+
+API health check: http://localhost:4000/api/health.
+
+## 3. Run the AI service
+
+In another terminal, from the repository root:
+
+```bash
+cd ai-service
+python -m venv .venv
+```
+
+Activate the environment:
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+```bash
+# macOS/Linux
+source .venv/bin/activate
+```
+
+Install dependencies and configure the AI service:
+
+```bash
+pip install -r requirements.txt
+```
+
+Copy `.env.example` to `.env`. Defaults use:
+
+- `OLLAMA_BASE_URL=http://127.0.0.1:11434`
+- `OLLAMA_MODEL=qwen2.5:3b`
+
+Install and start Ollama separately, then download the model:
+
+```bash
+ollama pull qwen2.5:3b
+```
+
+Start FastAPI:
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+Health check: http://localhost:8000/health.
+
+If Ollama is not running or the model is unavailable, the AI service returns clearly labelled heuristic demo feedback. Do not mistake this fallback for an LLM evaluation.
+
+## 4. Run the frontend
+
+In a third terminal, from the repository root:
 
 ```bash
 npm install
@@ -40,25 +119,9 @@ npm run dev
 
 Open http://localhost:5173.
 
-## Run the API
+The Vite development server proxies `/api` requests to the API at `http://localhost:4000`.
 
-In a second terminal:
-
-```bash
-cd server
-npm install
-cp .env.example .env
-```
-
-Set `JWT_SECRET` to a random secret of at least 32 characters and set `MONGODB_URI` to your MongoDB connection string. Then run:
-
-```bash
-npm run dev
-```
-
-API health check: http://localhost:4000/api/health.
-
-### API endpoints currently available
+## API endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -69,57 +132,43 @@ API health check: http://localhost:4000/api/health.
 | POST | `/api/interviews` | Create an interview |
 | GET | `/api/interviews/:id` | Read own interview |
 | PATCH | `/api/interviews/:id` | Update own interview |
-| POST | `/api/review` | Request demo answer review |
+| POST | `/api/review` | Request authenticated answer review |
 
-Protected endpoints require `Authorization: Bearer <token>`.
-
-## Run the Python AI-service scaffold
-
-In a third terminal, from the repository root:
-
-```bash
-cd ai-service
-python -m venv .venv
-# Windows: .venv\\Scripts\\activate
-# macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-Health check: http://localhost:8000/health.
+Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps the short-lived token in session storage for the current browser tab.
 
 ## Current functionality
 
 - Responsive dark/light dashboard and navigation
-- Interview setup for role, interview type, level, and question count
-- Technical, HR, and Mixed practice question tracks
+- Registration and login screens connected to the API
+- bcrypt password hashing and short-lived JWT authentication
+- Interview setup for role, interview type, level and question count
+- Technical, HR and Mixed practice question tracks
 - Text answer entry, word count, review and next-question flow
-- Clearly disclosed heuristic demo feedback
-- Starter registration/login endpoints with bcrypt password hashing and short-lived JWTs
-- Protected interview CRUD endpoints scoped to the authenticated user
-- FastAPI demo review endpoint and Express proxy
+- Interview records, answers, scores and duration persisted through the authenticated API
+- Interview history loaded from the signed-in user's account
+- Local Ollama review integration with structured JSON output and a labelled heuristic fallback
+- API validation and ownership-scoped interview queries
 
-## Important limitations
+## Known limitations
 
-- Frontend demo sessions are held in memory and reset on page reload.
-- The current frontend is not yet wired to the authentication and interview APIs.
-- API authentication and database routes have not yet received automated integration/security testing.
-- No refresh-token or password-reset flow yet.
-- No real LLM/Ollama integration yet.
-- No audio recording, Whisper transcription, or real-time voice interview yet.
-- No code execution engine. Never execute untrusted code in the API process.
-- The current score is a simple heuristic and must not be used as a hiring decision or objective assessment.
+- Real MongoDB registration/login and end-to-end interview flow still need integration testing against a configured database.
+- Ollama model quality and hardware performance have not yet been verified on the handover machine.
+- No refresh-token, password-reset or account-deletion flow yet.
+- No audio recording, Whisper transcription or real-time voice interview.
+- No coding editor or isolated code execution engine. Never execute untrusted code inside the API process.
+- Dashboard analytics still contain illustrative metrics and need to be driven entirely by persisted interview data.
+- This is a development build, not a production-ready service.
 
 ## Development roadmap
 
-1. Foundation UI and service scaffolding (current)
-2. Connect frontend authentication, protected routes, and persistent interview history
-3. Add tests and harden authentication, API validation, and data access
-4. Add local-model provider abstraction (Ollama) and evaluation quality tests
-5. Add audio capture, upload limits, transcription pipeline, and privacy controls
-6. Add coding workspace with isolated execution service and test cases
-7. Add analytics, reports, accessibility, security review, and end-to-end tests
+1. Core dashboard and API foundation
+2. Frontend authentication and interview persistence
+3. Local Ollama review integration
+4. Automated API, AI fallback, security and end-to-end tests
+5. Voice capture, upload limits, transcription and privacy controls
+6. Coding workspace with isolated execution and test cases
+7. Real analytics, reports, accessibility, security review and handover package
 
 ## Security notes
 
-Never commit real secrets. Copy `.env.example` to `.env` and use strong, unique values. Production deployment requires HTTPS, strict CORS, rate limiting, secure token storage, request validation, upload size limits, dependency scanning, and isolated code execution. Do not use the demo score to assess real candidates.
+Never commit real secrets. Keep all `.env` files private. Production deployment requires HTTPS, strict CORS, rate limiting, secure token storage, request validation, upload size limits, dependency scanning and isolated code execution. Do not use heuristic demo scores for hiring decisions.
