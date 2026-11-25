@@ -31,6 +31,8 @@ A responsive mock-interview practice application for technical, HR and mixed int
 - Python 3.10+
 - MongoDB 6+ (local or hosted)
 - Ollama installed locally for model-powered feedback (optional; heuristic fallback works without it)
+- Microphone and a modern browser for voice input
+- Optional faster-whisper dependencies and a compatible local machine for speech-to-text
 
 ## 1. Configure and run MongoDB
 
@@ -85,12 +87,16 @@ Install dependencies and configure the AI service:
 
 ```bash
 pip install -r requirements.txt
+# Optional: install local Whisper transcription support
+pip install -r requirements-voice.txt
 ```
 
 Copy `.env.example` to `.env`. Defaults use:
 
 - `OLLAMA_BASE_URL=http://127.0.0.1:11434`
 - `OLLAMA_MODEL=qwen2.5:3b`
+
+For speech-to-text, the optional `requirements-voice.txt` installs faster-whisper. The default Whisper model is `base`, using CPU `int8` mode. The first transcription may download model weights, so an internet connection is required for that initial setup unless weights are pre-cached. Configure `WHISPER_MODEL`, `WHISPER_DEVICE` and `WHISPER_COMPUTE_TYPE` in `ai-service/.env` if needed.
 
 Install and start Ollama separately, then download the model:
 
@@ -133,6 +139,7 @@ The Vite development server proxies `/api` requests to the API at `http://localh
 | GET | `/api/interviews/:id` | Read own interview |
 | PATCH | `/api/interviews/:id` | Update own interview |
 | POST | `/api/review` | Request authenticated answer review |
+| POST | `/api/transcribe` | Upload a short recording for local Whisper transcription |
 
 Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps the short-lived token in session storage for the current browser tab.
 
@@ -147,6 +154,8 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Interview records, answers, scores and duration persisted through the authenticated API
 - Interview history loaded from the signed-in user's account
 - Local Ollama review integration with structured JSON output and a labelled heuristic fallback
+- Browser microphone recording, authenticated audio upload, and optional local faster-whisper transcription
+- Audio upload is limited to 25 MB, with temporary audio files removed after transcription
 - API validation and ownership-scoped interview queries
 
 ## Known limitations
@@ -154,7 +163,7 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Real MongoDB registration/login and end-to-end interview flow still need integration testing against a configured database.
 - Ollama model quality and hardware performance have not yet been verified on the handover machine.
 - No refresh-token, password-reset or account-deletion flow yet.
-- No audio recording, Whisper transcription or real-time voice interview.
+- Voice capture and Whisper transcription are implemented as optional local features, but still need a real microphone/model test on the target machine. No real-time spoken AI interviewer or speech playback yet.
 - No coding editor or isolated code execution engine. Never execute untrusted code inside the API process.
 - Dashboard analytics still contain illustrative metrics and need to be driven entirely by persisted interview data.
 - This is a development build, not a production-ready service.
@@ -171,4 +180,4 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 
 ## Security notes
 
-Never commit real secrets. Keep all `.env` files private. Production deployment requires HTTPS, strict CORS, rate limiting, secure token storage, request validation, upload size limits, dependency scanning and isolated code execution. Do not use heuristic demo scores for hiring decisions.
+Never commit real secrets. Keep all `.env` files private. Production deployment requires HTTPS, strict CORS, rate limiting, secure token storage, request validation, upload size limits, dependency scanning and isolated code execution. Audio is sent only to the configured local AI service in this setup; temporary files are deleted after transcription. Do not use heuristic demo scores for hiring decisions.
