@@ -115,7 +115,7 @@ Candidate answer: {payload.answer}
 @app.post("/transcribe")
 async def transcribe(file: UploadFile = File(...)):
     allowed = {"audio/webm", "audio/ogg", "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/aac"}
-    if file.content_type not in allowed:
+    if (file.content_type or "").split(";")[0].strip().lower() not in allowed:
         raise HTTPException(status_code=415, detail="Unsupported audio format.")
     audio = await file.read(25 * 1024 * 1024 + 1)
     if not audio:
