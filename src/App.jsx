@@ -17,17 +17,23 @@ const questions = {
   Technical: [
     'How would you explain the difference between let, const, and var in JavaScript?',
     'What is the difference between unit testing and integration testing?',
-    'How would you design a reliable API test strategy for a critical user journey?'
+    'How would you design a reliable API test strategy for a critical user journey?',
+    'How do you identify and reduce flaky automated tests in a CI pipeline?',
+    'Describe how you would investigate a production issue using logs and test evidence.'
   ],
   HR: [
     'Tell me about yourself and the kind of role you are looking for.',
     'Describe a time you received difficult feedback. What did you do next?',
-    'What motivates you to do your best work?'
+    'What motivates you to do your best work?',
+    'Tell me about a disagreement with a teammate and how you handled it.',
+    'What is one professional skill you are actively improving?'
   ],
   Mixed: [
     'Walk me through a project you are proud of and the impact you made.',
     'How do you investigate a bug that you cannot reproduce consistently?',
-    'Tell me about a time you had to learn a new tool quickly.'
+    'Tell me about a time you had to learn a new tool quickly.',
+    'How would you prioritise several bugs reported close to a release?',
+    'Explain a technical concept to a non-technical stakeholder.'
   ]
 };
 
@@ -191,9 +197,24 @@ function App({ user, token, onLogout }) {
       setActive('Overview');
       return;
     }
-    setQuestionIndex(index => index + 1);
-    setAnswer('');
-    setFeedback(null);
+    const updatedAnswers = [...answers];
+    updatedAnswers[questionIndex] = {
+      question: currentQuestions[questionIndex % currentQuestions.length],
+      answer: answer.trim(),
+      feedback: feedback ?? updatedAnswers[questionIndex]?.feedback ?? null
+    };
+    try {
+      await apiRequest('/api/interviews/' + interview.id, {
+        method: 'PATCH',
+        body: JSON.stringify({ answers: updatedAnswers })
+      });
+      setAnswers(updatedAnswers);
+      setQuestionIndex(index => index + 1);
+      setAnswer('');
+      setFeedback(null);
+    } catch (error) {
+      notify('Could not save this answer: ' + error.message);
+    }
   }
 
   const pageTitle = active === 'Overview' ? 'Good afternoon' : active;
@@ -229,13 +250,13 @@ function App({ user, token, onLogout }) {
             <>
               <div className="page-heading"><div><div className="eyebrow"><span className="live-dot"/> YOUR PRACTICE SPACE</div><h1>{pageTitle}, {user?.name?.split(" ")[0] || "there"} <span className="wave-emoji">✦</span></h1><p>{pageSubtitle}</p></div><button className="btn btn-primary" onClick={() => setActive('Mock interview')}><Plus size={17}/> New interview</button></div>
               <div className="stats-grid"><Stat icon={Target} label="Interviews completed" value={String(sessions.length)} trend="+3 this week" positive/><Stat icon={Gauge} label="Average score" value={scoreAverage + '%'} trend="+6% this month" positive/><Stat icon={Clock3} label="Practice time" value={Math.round(sessions.reduce((sum, item) => sum + (parseInt(item.duration, 10) || 0), 0) / 60 * 10) / 10 + 'h'} trend="From saved sessions"/><Stat icon={Flame} label="Current streak" value="—" trend="Streak tracking not enabled" /></div>
-              <div className="dashboard-grid"><div className="panel performance-panel"><div className="panel-heading"><div><h2>Performance overview</h2><p>Your interview scores over the last 7 sessions</p></div><button className="select-button">Last 7 sessions <ChevronDown size={14}/></button></div><div className="chart-wrap"><div className="chart-y"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div className="chart-main"><div className="chart-grid"><i/><i/><i/><i/><i/></div><svg viewBox="0 0 650 190" preserveAspectRatio="none" role="img" aria-label="Practice scores trending upward"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#8b7cff" stopOpacity=".25"/><stop offset="100%" stopColor="#8b7cff" stopOpacity="0"/></linearGradient></defs><path d="M0 145 C40 130 55 116 95 124 S155 95 190 107 S250 65 285 86 S345 75 380 81 S445 42 475 57 S545 27 570 42 S625 18 650 23 L650 190 L0 190Z" fill="url(#area)"/><path d="M0 145 C40 130 55 116 95 124 S155 95 190 107 S250 65 285 86 S345 75 380 81 S445 42 475 57 S545 27 570 42 S625 18 650 23" fill="none" stroke="#9b8cff" strokeWidth="3" strokeLinecap="round"/><circle cx="650" cy="23" r="5" fill="#9b8cff" stroke="var(--panel)" strokeWidth="3"/></svg><div className="chart-x"><span>Session 1</span><span>Session 2</span><span>Session 3</span><span>Session 4</span><span>Session 5</span><span>Session 6</span><span>Session 7</span></div></div></div><div className="chart-legend"><span><i className="legend-dot violet-dot"/> Overall score</span><span className="chart-insight"><ArrowUpRight size={14}/> Trending upward</span></div></div>
+              <div className="dashboard-grid"><div className="panel performance-panel"><div className="panel-heading"><div><h2>Performance overview</h2><p>Illustrative trend preview, not a live score chart</p></div><button className="select-button">Last 7 sessions <ChevronDown size={14}/></button></div><div className="chart-wrap"><div className="chart-y"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div className="chart-main"><div className="chart-grid"><i/><i/><i/><i/><i/></div><svg viewBox="0 0 650 190" preserveAspectRatio="none" role="img" aria-label="Practice scores trending upward"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#8b7cff" stopOpacity=".25"/><stop offset="100%" stopColor="#8b7cff" stopOpacity="0"/></linearGradient></defs><path d="M0 145 C40 130 55 116 95 124 S155 95 190 107 S250 65 285 86 S345 75 380 81 S445 42 475 57 S545 27 570 42 S625 18 650 23 L650 190 L0 190Z" fill="url(#area)"/><path d="M0 145 C40 130 55 116 95 124 S155 95 190 107 S250 65 285 86 S345 75 380 81 S445 42 475 57 S545 27 570 42 S625 18 650 23" fill="none" stroke="#9b8cff" strokeWidth="3" strokeLinecap="round"/><circle cx="650" cy="23" r="5" fill="#9b8cff" stroke="var(--panel)" strokeWidth="3"/></svg><div className="chart-x"><span>Session 1</span><span>Session 2</span><span>Session 3</span><span>Session 4</span><span>Session 5</span><span>Session 6</span><span>Session 7</span></div></div></div><div className="chart-legend"><span><i className="legend-dot violet-dot"/> Overall score</span><span className="chart-insight"><ArrowUpRight size={14}/> Example trend only</span></div></div>
               <div className="panel skills-panel"><div className="panel-heading"><div><h2>Skill breakdown</h2><p>Areas to focus on next</p></div><button className="more-btn"><MoreHorizontal size={19}/></button></div><Skill name="Technical knowledge" score={82} color="purple"/><Skill name="Communication" score={74} color="blue"/><Skill name="Problem solving" score={68} color="cyan"/><Skill name="Confidence" score={91} color="green"/><button className="text-link" onClick={() => setActive('Performance')}>View detailed analysis <ArrowRight size={14}/></button></div></div>
               <div className="panel sessions-panel"><div className="panel-heading"><div><h2>Recent interviews</h2><p>Your saved practice sessions</p></div><button className="text-link" onClick={() => setActive('Interview history')}>View all <ArrowRight size={14}/></button></div><div className="table-wrap"><table><thead><tr><th>INTERVIEW</th><th>DATE</th><th>DURATION</th><th>SCORE</th><th>STATUS</th><th/></tr></thead><tbody>{sessions.slice(0,4).map(session => <tr key={session.id}><td><div className="session-name"><div className="session-icon"><Code2 size={16}/></div><div><strong>{session.role}</strong><small>{session.kind} interview</small></div></div></td><td>{session.date}</td><td>{session.duration}</td><td><span className="score-text">{session.score}%</span></td><td><span className="status-pill"><i/>{session.status}</span></td><td><button className="more-btn"><MoreHorizontal size={18}/></button></td></tr>)}</tbody></table></div></div>
               <div className="bottom-banner"><div className="banner-icon"><BookOpen size={21}/></div><div><strong>Small steps. Strong interviews.</strong><p>Consistency beats cramming. Try one focused session today.</p></div><button onClick={() => setActive('Mock interview')}>Start practising <ArrowRight size={15}/></button><div className="banner-decoration">✳</div></div>
             </>
           ) : active === 'Coding practice' ? <section><div className="page-heading"><div><div className="eyebrow">BUILD PROBLEM-SOLVING SKILLS</div><h1>Coding practice</h1><p>Work through interview-style challenges at your own pace.</p></div></div><div className="panel coming-panel"><div className="coming-icon"><Code2 size={26}/></div><h2>Your coding workspace is next</h2><p>The coding editor, language runner, sample tests and saved solutions are planned for the next build stage.</p><span className="label-pill">IN DEVELOPMENT</span></div></section>
-          : active === 'Performance' ? <section><div className="page-heading"><div><div className="eyebrow">MEASURE WHAT MATTERS</div><h1>Performance</h1><p>Understand your strengths and where to focus your next practice session.</p></div></div><div className="stats-grid"><Stat icon={Gauge} label="Average score" value={scoreAverage + '%'} trend="Based on visible demo sessions" positive/><Stat icon={Trophy} label="Best recent score" value={Math.max(...sessions.map(s => s.score)) + '%'} trend="Recent session high" positive/><Stat icon={Users} label="Sessions reviewed" value={String(sessions.length)} trend="Saved to your account"/></div><div className="panel skills-panel wide-skills"><div className="panel-heading"><div><h2>Core interview skills</h2><p>Illustrative skill estimates for the dashboard preview</p></div></div><Skill name="Technical knowledge" score={82} color="purple"/><Skill name="Communication" score={74} color="blue"/><Skill name="Problem solving" score={68} color="cyan"/><Skill name="Confidence" score={91} color="green"/></div></section>
+          : active === 'Performance' ? <section><div className="page-heading"><div><div className="eyebrow">MEASURE WHAT MATTERS</div><h1>Performance</h1><p>Understand your strengths and where to focus your next practice session.</p></div></div><div className="stats-grid"><Stat icon={Gauge} label="Average score" value={scoreAverage + '%'} trend="Based on visible demo sessions" positive/><Stat icon={Trophy} label="Best recent score" value={Math.max(0, ...sessions.map(s => s.score)) + '%'} trend="Recent session high" positive/><Stat icon={Users} label="Sessions reviewed" value={String(sessions.length)} trend="Saved to your account"/></div><div className="panel skills-panel wide-skills"><div className="panel-heading"><div><h2>Core interview skills</h2><p>Illustrative skill estimates for the dashboard preview</p></div></div><Skill name="Technical knowledge" score={82} color="purple"/><Skill name="Communication" score={74} color="blue"/><Skill name="Problem solving" score={68} color="cyan"/><Skill name="Confidence" score={91} color="green"/></div></section>
           : active === 'Interview history' ? <section><div className="page-heading"><div><div className="eyebrow">YOUR PRACTICE JOURNEY</div><h1>Interview history</h1><p>Review recent sessions and keep your progress moving.</p></div><button className="btn btn-primary" onClick={() => setActive('Mock interview')}><Plus size={16}/> New interview</button></div><div className="panel sessions-panel history-panel"><div className="panel-heading"><div><h2>All sessions</h2><p>{loadingSessions ? 'Loading saved sessions…' : sessions.length + ' saved sessions'}</p></div></div><div className="table-wrap"><table><thead><tr><th>INTERVIEW</th><th>DATE</th><th>DURATION</th><th>SCORE</th><th>STATUS</th></tr></thead><tbody>{sessions.map(session => <tr key={session.id}><td><div className="session-name"><div className="session-icon"><Code2 size={16}/></div><div><strong>{session.role}</strong><small>{session.kind} interview</small></div></div></td><td>{session.date}</td><td>{session.duration}</td><td><span className="score-text">{session.score}%</span></td><td><span className="status-pill"><i/>{session.status}</span></td></tr>)}</tbody></table></div></div></section>
           : active === 'Settings' ? <section><div className="page-heading"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="panel settings-panel"><div className="settings-row"><div><strong>Appearance</strong><p>Choose the look that feels right for you.</p></div><button className="select-button" onClick={() => setDark(value => !value)}>{dark ? 'Dark mode' : 'Light mode'} {dark ? <Moon size={15}/> : <Sun size={15}/>}</button></div><div className="settings-row"><div><strong>Practice mode</strong><p>Current sessions use local demo feedback until the AI service is connected.</p></div><span className="label-pill">DEMO MODE</span></div><div className="settings-row"><div><strong>Account</strong><p>You are signed in as {user?.email}.</p></div><span className="muted-label">Coming next</span></div></div></section>
           : <section><div className="page-heading"><div><div className="eyebrow">WE'RE HERE TO HELP</div><h1>Help centre</h1><p>Quick answers for your practice workspace.</p></div></div><div className="panel help-panel"><h3>How does demo feedback work?</h3><p>The current preview uses a transparent, rule-based heuristic to demonstrate the review flow. It is not an AI model evaluation and should not be treated as an objective interview score.</p><h3>Will my practice be saved?</h3><p>Completed and in-progress interview records are loaded from your account when the API and database are available.</p></div></section>}
