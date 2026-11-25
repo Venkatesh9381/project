@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import authRoutes from './routes/auth.js';
 import interviewRoutes from './routes/interviews.js';
+import { requireAuth } from './middleware/auth.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -28,7 +29,7 @@ const reviewSchema = z.object({
   interviewType: z.enum(['Technical', 'HR', 'Mixed']).default('Technical')
 });
 
-app.post('/api/review', async (req, res) => {
+app.post('/api/review', requireAuth, async (req, res) => {
   const parsed = reviewSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid review request', details: parsed.error.flatten() });
   try {
