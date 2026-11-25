@@ -5,7 +5,7 @@ export function requireAuth(req, res, next) {
   const [scheme, token] = header.split(' ');
   if (scheme !== 'Bearer' || !token) return res.status(401).json({ error: 'Authentication required' });
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET, { issuer: 'interviewos-api', audience: 'interviewos-client' });
     req.user = { id: payload.sub };
     next();
   } catch {
