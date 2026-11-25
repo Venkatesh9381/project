@@ -4,15 +4,22 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import mongoose from 'mongoose';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
+import authRoutes from './routes/auth.js';
+import interviewRoutes from './routes/interviews.js';
 
 const app = express();
+app.disable('x-powered-by');
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_ORIGIN?.split(',') ?? 'http://localhost:5173' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
 
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'interviewos-api', mode: 'development' }));
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/interviews', interviewRoutes);
 
 const reviewSchema = z.object({
   question: z.string().min(5).max(2000),
@@ -33,20 +40,21 @@ app.post('/api/review', async (req, res) => {
     });
     if (!response.ok) throw new Error(`AI service returned ${response.status}`);
     res.json(await response.json());
-  } catch (error) {
+  } catch {
     res.status(503).json({ error: 'AI review service is unavailable', message: 'Start the Python AI service and try again.', mode: 'unavailable' });
   }
 });
 
 app.use((err, _req, res, _next) => {
+  if (err?.code === 11000) return res.status(409).json({ error: 'An account with this email already exists' });
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
 const port = Number(process.env.PORT ?? 4000);
-if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB connected'))
-    .catch(error => console.error('MongoDB connection failed:', error.message));
-}
+if (!process.env.MONGODB_URI) console.warn('MONGODB_URI is not set. Database-backed routes will not work.');
+else mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch(error => console.error('MongoDB connection failed:', error.message));
+
 app.listen(port, () => console.log(`InterviewOS API listening on http://localhost:${port}`));
