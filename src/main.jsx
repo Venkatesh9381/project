@@ -6,6 +6,6 @@ import './styles.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthGate>{({ user, onLogout }) => <App user={user} onLogout={onLogout} />}</AuthGate>
+    <AuthGate>{({ user, token, onLogout }) => <App user={user} token={token} onLogout={onLogout} />}</AuthGate>
   </React.StrictMode>
 );
