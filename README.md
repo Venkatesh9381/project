@@ -6,7 +6,7 @@ A responsive mock-interview practice application for technical, HR and mixed int
 
 ## Stack
 
-- Frontend: React 18, Vite, Lucide React
+- Frontend: React 18, Vite, Monaco Editor, Lucide React
 - API: Node.js, Express, Zod, Helmet, JWT, bcryptjs
 - Database: MongoDB with Mongoose
 - AI service: Python, FastAPI, Ollama (local model), transparent heuristic fallback
@@ -145,7 +145,7 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 
 ## Current functionality
 
-- JavaScript coding practice with three starter challenges, hints, sample test cases, reset and run controls
+- Monaco-based JavaScript coding practice with three starter challenges, hints, sample test cases, reset and run controls
 - Coding submissions run in a temporary browser Worker with network APIs disabled and a short execution timeout; this is a learning aid, not a secure hostile-code sandbox
 - Dashboard averages, completion counts, practice time and saved coaching notes calculated from persisted interview sessions
 
@@ -168,7 +168,7 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Ollama model quality and hardware performance have not yet been verified on the handover machine.
 - No refresh-token, password-reset or account-deletion flow yet.
 - Voice capture and Whisper transcription are implemented as optional local features, but still need a real microphone/model test on the target machine. No real-time spoken AI interviewer or speech playback yet.
-- Coding practice currently provides a Monaco JavaScript editor and browser Worker runner for three sample challenges. It is not Monaco and is not a production-grade sandbox or multi-language execution service. Never execute untrusted code inside the API process.
+- Coding practice provides a Monaco JavaScript editor and browser Worker runner for three sample challenges. The runner is not a production-grade sandbox or multi-language execution service. Never execute untrusted code inside the API process.
 - Dashboard score averages, completed-session counts, practice time and coaching notes are derived from saved interview records. Skill-level scoring and trend forecasting are not yet implemented.
 - This is a development build, not a production-ready service.
 
