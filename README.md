@@ -2,11 +2,11 @@
 
 A responsive mock-interview practice application for technical, HR and mixed interviews.
 
-> **Current status: active development.** Registration/login and authenticated interview persistence are connected to the API. Answer review calls the local AI service, which attempts Ollama and explicitly falls back to heuristic demo feedback when the local model is unavailable. Browser microphone capture and an optional local Whisper transcription endpoint are implemented, but still require hardware-level verification. Coding execution is not implemented.
+> **Current status: active development.** Registration/login and authenticated interview persistence are connected to the API. Answer review calls the local AI service, which attempts Ollama and explicitly falls back to heuristic demo feedback when the local model is unavailable. Browser microphone capture and an optional local Whisper transcription endpoint are implemented, but still require hardware-level verification. A browser-based JavaScript coding practice workspace with sample tests is implemented. It is a learning runner, not a hardened service for executing untrusted code.
 
 ## Stack
 
-- Frontend: React 18, Vite, Lucide React
+- Frontend: React 18, Vite, Monaco Editor, Lucide React
 - API: Node.js, Express, Zod, Helmet, JWT, bcryptjs
 - Database: MongoDB with Mongoose
 - AI service: Python, FastAPI, Ollama (local model), transparent heuristic fallback
@@ -138,6 +138,7 @@ The Vite development server proxies `/api` requests to the API at `http://localh
 | POST | `/api/interviews` | Create an interview |
 | GET | `/api/interviews/:id` | Read own interview |
 | PATCH | `/api/interviews/:id` | Update own interview |
+| POST | `/api/questions` | Generate role, level and difficulty-aware interview questions |
 | POST | `/api/review` | Request authenticated answer review |
 | POST | `/api/transcribe` | Upload a short recording for local Whisper transcription |
 
@@ -145,10 +146,15 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 
 ## Current functionality
 
+- Monaco-based JavaScript coding practice with three starter challenges, hints, sample test cases, reset and run controls
+- Coding submissions run in a temporary browser Worker with network APIs disabled and a short execution timeout; this is a learning aid, not a secure hostile-code sandbox
+- Dashboard averages, completion counts, practice time and saved coaching notes calculated from persisted interview sessions
+
 - Responsive dark/light dashboard and navigation
 - Registration and login screens connected to the API
 - bcrypt password hashing and short-lived JWT authentication
-- Interview setup for role, interview type, level and question count
+- Interview setup for role, interview type, experience level, difficulty and question count
+- Ollama-generated role-aware questions with a clearly labelled role-template fallback
 - Technical, HR and Mixed practice question tracks
 - Text answer entry, word count, review and next-question flow
 - Interview records, answers, scores and duration persisted through the authenticated API
@@ -164,8 +170,8 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Ollama model quality and hardware performance have not yet been verified on the handover machine.
 - No refresh-token, password-reset or account-deletion flow yet.
 - Voice capture and Whisper transcription are implemented as optional local features, but still need a real microphone/model test on the target machine. No real-time spoken AI interviewer or speech playback yet.
-- No coding editor or isolated code execution engine. Never execute untrusted code inside the API process.
-- Dashboard analytics still contain illustrative metrics and need to be driven entirely by persisted interview data.
+- Coding practice provides a Monaco JavaScript editor and browser Worker runner for three sample challenges. The runner is not a production-grade sandbox or multi-language execution service. Never execute untrusted code inside the API process.
+- Dashboard score averages, completed-session counts, practice time and coaching notes are derived from saved interview records. Skill-level scoring and trend forecasting are not yet implemented.
 - This is a development build, not a production-ready service.
 
 ## Development roadmap
@@ -173,9 +179,9 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 1. Core dashboard and API foundation
 2. Frontend authentication and interview persistence
 3. Local Ollama review integration
-4. Complete MongoDB, Ollama and microphone/Whisper integration testing
-5. Build the coding workspace with isolated execution and test cases
-6. Replace illustrative dashboard data with real analytics and reports
+4. Complete MongoDB, Ollama and microphone/Whisper integration testing on the target machine
+5. Expand coding practice after validating the current browser runner; use a hardened isolated execution service before accepting untrusted submissions
+6. Add detailed interview reports and skill-level scoring from structured evaluation data
 7. Accessibility, security review and final handover package
 
 ## Security notes

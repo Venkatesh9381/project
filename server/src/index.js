@@ -14,7 +14,7 @@ import { requireAuth } from './middleware/auth.js';
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_ORIGIN?.split(',') ?? 'http://localhost:5173' }));
+app.use(cors({ origin: (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173').split(',').map(origin => origin.trim()).filter(Boolean) }));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
 
@@ -34,9 +34,22 @@ const audioUpload = multer({
 });
 const audioLimiter = rateLimit({ windowMs: 60 * 1000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'interviewos-api', mode: 'development' }));
+const reviewLimiter = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
+app.get('/api/health', (_req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({ status: connected ? 'ok' : 'degraded', service: 'interviewos-api', database: connected ? 'connected' : 'disconnected' });
+});
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/interviews', interviewRoutes);
+
+const questionSchema = z.object({
+  role: z.string().trim().min(2).max(120),
+  interviewType: z.enum(['Technical', 'HR', 'Mixed']),
+  level: z.enum(['Beginner', 'Intermediate', 'Advanced']).default('Intermediate'),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard']).default('Medium'),
+  count: z.number().int().min(3).max(5),
+  previousQuestions: z.array(z.string().max(500)).max(20).default([])
+});
 
 const reviewSchema = z.object({
   question: z.string().min(5).max(2000),
@@ -66,7 +79,24 @@ app.post('/api/transcribe', requireAuth, audioLimiter, (req, res, next) => {
   });
 });
 
-app.post('/api/review', requireAuth, async (req, res) => {
+app.post('/api/questions', requireAuth, reviewLimiter, async (req, res) => {
+  const parsed = questionSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid question-generation request', details: parsed.error.flatten() });
+  try {
+    const response = await fetch(`${process.env.AI_SERVICE_URL ?? 'http://127.0.0.1:8000'}/questions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(parsed.data),
+      signal: AbortSignal.timeout(50000)
+    });
+    if (!response.ok) throw new Error(`AI service returned ${response.status}`);
+    res.json(await response.json());
+  } catch {
+    res.status(503).json({ error: 'Question generation service is unavailable', message: 'Start the Python AI service and try again.' });
+  }
+});
+
+app.post('/api/review', requireAuth, reviewLimiter, async (req, res) => {
   const parsed = reviewSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid review request', details: parsed.error.flatten() });
   try {
@@ -92,9 +122,19 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = Number(process.env.PORT ?? 4000);
-if (!process.env.MONGODB_URI) console.warn('MONGODB_URI is not set. Database-backed routes will not work.');
-else mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(error => console.error('MongoDB connection failed:', error.message));
 
-app.listen(port, () => console.log(`InterviewOS API listening on http://localhost:${port}`));
+export async function startServer() {
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is required. Configure server/.env before starting the API.');
+  }
+  await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
+  console.log('MongoDB connected');
+  return app.listen(port, () => console.log(`InterviewOS API listening on http://localhost:${port}`));
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer().catch(error => {
+    console.error('API startup failed:', error.message);
+    process.exitCode = 1;
+  });
+}

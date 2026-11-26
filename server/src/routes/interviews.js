@@ -19,7 +19,9 @@ router.post('/', async (req, res, next) => {
     const schema = z.object({
       role: z.string().trim().min(2).max(120),
       interviewType: z.enum(['Technical', 'HR', 'Mixed']),
-      level: z.enum(['Beginner', 'Intermediate', 'Advanced']).default('Intermediate')
+      level: z.enum(['Beginner', 'Intermediate', 'Advanced']).default('Intermediate'),
+      difficulty: z.enum(['Easy', 'Medium', 'Hard']).default('Medium'),
+      questions: z.array(z.string().min(8).max(500)).min(3).max(5).optional()
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Invalid interview setup', details: parsed.error.flatten() });
