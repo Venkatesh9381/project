@@ -1,6 +1,6 @@
 # InterviewOS handover guide
 
-This guide is for the person setting up and demonstrating the project. It assumes a Windows 10/11 computer. The application is a local development project, not a hosted production service.
+This guide is for the person setting up and demonstrating the project. It assumes a Windows 10/11 computer. The repository has a CI-verified local demonstration flow, but it is not a hosted production service. The recipient still needs to configure MongoDB and start the API and AI service locally.
 
 ## What is included
 
