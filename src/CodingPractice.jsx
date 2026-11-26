@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import Editor from '@monaco-editor/react';
 import { CheckCircle2, Circle, Code2, Play, RotateCcw, ShieldCheck, Terminal, XCircle } from 'lucide-react';
 
 const challenges = [
@@ -157,7 +158,7 @@ export default function CodingPractice() {
           </div>
           <div className="panel editor-panel">
             <div className="editor-toolbar"><span><Code2 size={15}/> solution.js</span><span className="language-chip">JavaScript</span></div>
-            <textarea className="code-editor" spellCheck="false" aria-label="JavaScript code editor" value={code} onChange={event => { setCode(event.target.value); setResults(null); }} />
+            <Editor height="300px" defaultLanguage="javascript" theme="vs-dark" value={code} onChange={value => { setCode(value ?? ''); setResults(null); }} options={{ minimap: { enabled: false }, fontSize: 13, scrollBeyondLastLine: false, automaticLayout: true, wordWrap: 'on', padding: { top: 14, bottom: 14 } }} />
             <div className="editor-footer"><span>JavaScript · {code.split('\n').length} lines</span><div><button className="btn btn-primary" onClick={runCode} disabled={running || !code.trim()}><Play size={14} fill="currentColor"/>{running ? 'Running…' : 'Run tests'}</button></div></div>
           </div>
           <div className="panel test-panel">
