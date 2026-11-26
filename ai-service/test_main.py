@@ -55,5 +55,45 @@ class ReviewServiceTests(unittest.TestCase):
             main.ollama_review(self.payload)
 
 
+class QuestionGenerationTests(unittest.TestCase):
+    def setUp(self):
+        self.payload = main.QuestionRequest(
+            role="QA Automation Engineer",
+            interviewType="Technical",
+            level="Intermediate",
+            difficulty="Hard",
+            count=3,
+        )
+
+    def test_fallback_questions_are_role_aware_and_match_requested_count(self):
+        result = main.fallback_questions(self.payload)
+        self.assertEqual(len(result), 3)
+        self.assertTrue(all("QA Automation Engineer" in question for question in result))
+
+    @patch("main.urllib.request.urlopen")
+    def test_ollama_questions_returns_requested_number(self, urlopen):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps({
+            "message": {"content": json.dumps({
+                "questions": [
+                    "How would you design a stable test automation framework?",
+                    "How do you isolate a flaky end-to-end test?",
+                    "How would you test a critical REST API workflow?"
+                ]
+            })}
+        }).encode("utf-8")
+        urlopen.return_value = response
+        result = main.ollama_questions(self.payload)
+        self.assertEqual(len(result), 3)
+        self.assertIn("flaky", result[1])
+
+    @patch("main.ollama_questions", side_effect=OSError("Ollama is offline"))
+    def test_generation_uses_transparent_fallback_when_model_is_unavailable(self, _ollama):
+        result = main.generate_questions(self.payload)
+        self.assertEqual(result["mode"], "role-template-fallback")
+        self.assertEqual(len(result["questions"]), 3)
+        self.assertIn("disclaimer", result)
+
+
 if __name__ == "__main__":
     unittest.main()
