@@ -118,6 +118,11 @@ function App({ user, token, onLogout }) {
   }
 
   async function resumeInterview(id) {
+    if (interview?.id === id) {
+      setActive('Mock interview');
+      setMobileNav(false);
+      return;
+    }
     try {
       const data = await apiRequest('/api/interviews/' + id);
       const saved = data.interview;
