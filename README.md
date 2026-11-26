@@ -27,7 +27,7 @@ A responsive mock-interview practice application for technical, HR and mixed int
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22.12+ (Node.js 24 LTS recommended)
 - Python 3.10+
 - MongoDB 6+ (local or hosted)
 - Ollama installed locally for model-powered feedback (optional; heuristic fallback works without it)
