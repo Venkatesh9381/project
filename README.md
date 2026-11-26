@@ -163,6 +163,7 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Browser microphone recording, authenticated audio upload, and optional local faster-whisper transcription
 - Audio upload is limited to 25 MB, with temporary audio files removed after transcription
 - API validation and ownership-scoped interview queries
+- Resume controls for saved in-progress interview sessions, including the last saved question and answer
 
 ## Known limitations
 
