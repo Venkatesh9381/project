@@ -50,7 +50,7 @@ router.patch('/:id', async (req, res, next) => {
       answers: z.array(z.object({
         question: z.string().min(1).max(2000),
         answer: z.string().max(12000).default(''),
-        feedback: z.record(z.unknown()).nullable().optional()
+        feedback: z.record(z.string(), z.unknown()).nullable().optional()
       })).max(30).optional()
     }).refine(data => Object.keys(data).length > 0);
     const parsed = schema.safeParse(req.body);
