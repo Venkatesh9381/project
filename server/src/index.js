@@ -14,7 +14,7 @@ import { requireAuth } from './middleware/auth.js';
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_ORIGIN?.split(',') ?? 'http://localhost:5173' }));
+app.use(cors({ origin: (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173').split(',').map(origin => origin.trim()).filter(Boolean) }));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan('dev'));
 
@@ -34,7 +34,10 @@ const audioUpload = multer({
 });
 const audioLimiter = rateLimit({ windowMs: 60 * 1000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'interviewos-api', mode: 'development' }));
+app.get('/api/health', (_req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({ status: connected ? 'ok' : 'degraded', service: 'interviewos-api', database: connected ? 'connected' : 'disconnected' });
+});
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/interviews', interviewRoutes);
 
@@ -92,9 +95,19 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = Number(process.env.PORT ?? 4000);
-if (!process.env.MONGODB_URI) console.warn('MONGODB_URI is not set. Database-backed routes will not work.');
-else mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(error => console.error('MongoDB connection failed:', error.message));
 
-app.listen(port, () => console.log(`InterviewOS API listening on http://localhost:${port}`));
+export async function startServer() {
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is required. Configure server/.env before starting the API.');
+  }
+  await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
+  console.log('MongoDB connected');
+  return app.listen(port, () => console.log(`InterviewOS API listening on http://localhost:${port}`));
+}
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer().catch(error => {
+    console.error('API startup failed:', error.message);
+    process.exitCode = 1;
+  });
+}
