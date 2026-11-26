@@ -30,7 +30,7 @@ git clone https://github.com/Venkatesh9381/project.git
 cd project
 ```
 
-If working from the completion pull request, use the `project-completion` branch after it has been merged or checked out explicitly.
+Use the default `main` branch. No special feature branch is required for setup.
 
 ## 2. Configure MongoDB and the API
 
@@ -43,11 +43,19 @@ cd server
 Copy-Item .env.example .env
 ```
 
+Generate a unique JWT secret in PowerShell:
+
+```powershell
+[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(48))
+```
+
 Edit `server/.env` and set:
 - `MONGODB_URI` to the local or hosted MongoDB connection string
-- `JWT_SECRET` to a random secret of at least 32 characters
+- `JWT_SECRET` to the generated random value (at least 32 characters)
 - `CLIENT_ORIGIN=http://localhost:5173`
 - `AI_SERVICE_URL=http://127.0.0.1:8000`
+
+Do not leave the example JWT value in place. The API intentionally refuses to start with a missing, short, or example placeholder secret. Never share or commit the generated secret or the `.env` file.
 
 Install and start the API:
 
@@ -131,7 +139,7 @@ Open http://localhost:5173, create an account and start a mock interview.
 
 ## Troubleshooting
 
-- API exits at startup: check that MongoDB is running and `MONGODB_URI` is correct.
+- API exits at startup: check that MongoDB is running, `MONGODB_URI` is correct, and `JWT_SECRET` is a unique random value of at least 32 characters.
 - Registration/login fails: check the API terminal, MongoDB health endpoint and `JWT_SECRET`.
 - AI review shows heuristic demo mode: check Ollama is running, the model is pulled, and the AI service terminal has no connection errors.
 - Voice transcription unavailable: install `requirements-voice.txt`, allow microphone access, and verify the Whisper model can load.
