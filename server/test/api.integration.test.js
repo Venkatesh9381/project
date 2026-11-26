@@ -77,6 +77,7 @@ test('registration, login and user-owned interview lifecycle work end to end', a
     .set('Authorization', `Bearer ${login.body.token}`)
     .send({
       status: 'completed',
+      currentQuestionIndex: 1,
       overallScore: 82,
       answers: [{
         question: 'How would you design a stable automation framework?',
@@ -91,6 +92,7 @@ test('registration, login and user-owned interview lifecycle work end to end', a
     .set('Authorization', `Bearer ${login.body.token}`)
     .expect(200);
   assert.equal(saved.body.interview.status, 'completed');
+  assert.equal(saved.body.interview.currentQuestionIndex, 1);
   assert.equal(saved.body.interview.overallScore, 82);
   assert.equal(saved.body.interview.answers.length, 1);
 
