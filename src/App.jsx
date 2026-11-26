@@ -122,7 +122,7 @@ function App({ user, token, onLogout }) {
       const generated = await apiRequest('/api/questions', {
         method: 'POST',
         body: JSON.stringify({ role: settings.role.trim(), interviewType: settings.type, level: settings.level, difficulty: settings.difficulty, count: Number(settings.count), previousQuestions: [] })
-      }).catch(() => ({ questions: questions[settings.type], mode: 'question-bank-fallback' }));
+      }).catch(() => ({ questions: questions[settings.type].slice(0, Number(settings.count)), mode: 'question-bank-fallback' }));
       const data = await apiRequest('/api/interviews', {
         method: 'POST',
         body: JSON.stringify({ role: settings.role.trim(), interviewType: settings.type, level: settings.level, difficulty: settings.difficulty, questions: generated.questions })
