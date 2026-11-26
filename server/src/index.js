@@ -124,6 +124,9 @@ app.use((err, _req, res, _next) => {
 const port = Number(process.env.PORT ?? 4000);
 
 export async function startServer() {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET === 'replace-with-a-long-random-secret') {
+    throw new Error('JWT_SECRET is required and must be a unique random value of at least 32 characters. Generate one before starting the API.');
+  }
   if (!process.env.MONGODB_URI) {
     throw new Error('MONGODB_URI is required. Configure server/.env before starting the API.');
   }
