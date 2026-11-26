@@ -42,6 +42,15 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/interviews', interviewRoutes);
 
+const questionSchema = z.object({
+  role: z.string().trim().min(2).max(120),
+  interviewType: z.enum(['Technical', 'HR', 'Mixed']),
+  level: z.enum(['Beginner', 'Intermediate', 'Advanced']).default('Intermediate'),
+  difficulty: z.enum(['Easy', 'Medium', 'Hard']).default('Medium'),
+  count: z.number().int().min(3).max(5),
+  previousQuestions: z.array(z.string().max(500)).max(20).default([])
+});
+
 const reviewSchema = z.object({
   question: z.string().min(5).max(2000),
   answer: z.string().min(12).max(12000),
@@ -68,6 +77,23 @@ app.post('/api/transcribe', requireAuth, audioLimiter, (req, res, next) => {
       return res.status(503).json({ error: 'Speech-to-text service is unavailable. Check the local Whisper setup.' });
     }
   });
+});
+
+app.post('/api/questions', requireAuth, reviewLimiter, async (req, res) => {
+  const parsed = questionSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid question-generation request', details: parsed.error.flatten() });
+  try {
+    const response = await fetch(`${process.env.AI_SERVICE_URL ?? 'http://127.0.0.1:8000'}/questions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(parsed.data),
+      signal: AbortSignal.timeout(50000)
+    });
+    if (!response.ok) throw new Error(`AI service returned ${response.status}`);
+    res.json(await response.json());
+  } catch {
+    res.status(503).json({ error: 'Question generation service is unavailable', message: 'Start the Python AI service and try again.' });
+  }
 });
 
 app.post('/api/review', requireAuth, reviewLimiter, async (req, res) => {
