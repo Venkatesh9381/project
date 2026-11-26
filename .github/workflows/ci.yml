@@ -60,3 +60,50 @@ jobs:
       - run: python -m py_compile ai-service/main.py ai-service/test_main.py
       - run: pip install -r ai-service/requirements.txt
       - run: python -m unittest discover -s ai-service -p 'test_*.py'
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/interviewos_e2e
+      JWT_SECRET: e2e-only-secret-with-at-least-thirty-two-characters
+      NODE_ENV: test
+      CLIENT_ORIGIN: http://127.0.0.1:5173
+      AI_SERVICE_URL: http://127.0.0.1:8000
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+      - run: npm install
+      - run: cd server && npm install
+      - run: pip install -r ai-service/requirements.txt
+      - run: npx playwright install --with-deps chromium
+      - name: Start services and run browser tests
+        run: |
+          (cd server && npm start) > /tmp/interviewos-api.log 2>&1 &
+          (cd ai-service && python -m uvicorn main:app --host 127.0.0.1 --port 8000) > /tmp/interviewos-ai.log 2>&1 &
+          (npm run dev -- --host 127.0.0.1) > /tmp/interviewos-web.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4000/api/health >/dev/null && curl -fsS http://127.0.0.1:8000/health >/dev/null && curl -fsS http://127.0.0.1:5173 >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:4000/api/health
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS http://127.0.0.1:5173 >/dev/null
+          npm run test:e2e
