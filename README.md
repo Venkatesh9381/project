@@ -168,7 +168,7 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Ollama model quality and hardware performance have not yet been verified on the handover machine.
 - No refresh-token, password-reset or account-deletion flow yet.
 - Voice capture and Whisper transcription are implemented as optional local features, but still need a real microphone/model test on the target machine. No real-time spoken AI interviewer or speech playback yet.
-- Coding practice currently provides a lightweight JavaScript editor and browser Worker runner for three sample challenges. It is not Monaco and is not a production-grade sandbox or multi-language execution service. Never execute untrusted code inside the API process.
+- Coding practice currently provides a Monaco JavaScript editor and browser Worker runner for three sample challenges. It is not Monaco and is not a production-grade sandbox or multi-language execution service. Never execute untrusted code inside the API process.
 - Dashboard score averages, completed-session counts, practice time and coaching notes are derived from saved interview records. Skill-level scoring and trend forecasting are not yet implemented.
 - This is a development build, not a production-ready service.
 
