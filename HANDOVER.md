@@ -9,7 +9,7 @@ This guide is for the person setting up and demonstrating the project. It assume
 - MongoDB persistence
 - Python FastAPI service for local Ollama answer review
 - Optional local faster-whisper speech-to-text
-- JavaScript practice challenges with sample tests in a browser Worker
+- Monaco-based JavaScript practice challenges with sample tests in a browser Worker
 - CI checks for frontend build, API tests/syntax and AI-service tests
 
 ## Software to install
@@ -122,7 +122,7 @@ Open http://localhost:5173, create an account and start a mock interview.
 
 - MongoDB, Ollama and Whisper require local configuration and were not verified on the recipient's hardware by the cloud repository workflow.
 - No live hosted deployment is included.
-- The coding practice editor is a lightweight text editor, not Monaco. Its Worker runner is intended for learning examples, not for securely running hostile code. A production assessment platform needs a hardened isolated execution service.
+- The coding practice workspace uses Monaco for JavaScript editing. Its Worker runner is intended for learning examples, not for securely running hostile code. A production assessment platform needs a hardened isolated execution service.
 - There is no real-time spoken AI interviewer, speech playback, password reset, refresh-token flow or account deletion flow.
 - Analytics use saved interview scores and feedback. They do not claim to measure separate communication, confidence or technical skill dimensions unless those metrics are explicitly captured.
 - Do not use heuristic demo scores for real hiring decisions.
