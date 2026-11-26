@@ -111,12 +111,13 @@ Open http://localhost:5173, create an account and start a mock interview.
 
 1. Register a new user account.
 2. Start a technical or HR mock interview.
-3. Answer a question in text.
-4. Review the answer and show whether the result is Ollama or heuristic demo mode.
-5. Move to the next question and finish the interview.
-6. Open Interview history and Performance to show saved session information.
-7. Open Coding practice, choose a challenge, edit the JavaScript and run sample tests.
-8. Optionally test microphone recording and local Whisper transcription.
+3. Start a role-specific session and check the question-generation mode shown in the interview header.
+4. Answer a question in text.
+5. Review the answer and show whether the result is Ollama or heuristic demo mode.
+6. Move to the next question and finish the interview.
+7. Open Interview history, open a saved report, and review Performance to show persisted session information.
+8. Open Coding practice, choose a challenge, edit the JavaScript and run sample tests.
+9. Optionally test microphone recording and local Whisper transcription.
 
 ## Important limitations
 
