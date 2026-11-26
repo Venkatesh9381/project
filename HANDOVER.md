@@ -10,7 +10,7 @@ This guide is for the person setting up and demonstrating the project. It assume
 - Python FastAPI service for local Ollama answer review
 - Optional local faster-whisper speech-to-text
 - Monaco-based JavaScript practice challenges with sample tests in a browser Worker
-- CI checks for frontend build, API tests/syntax and AI-service tests
+- CI checks for frontend build, npm dependency audits, MongoDB-backed API tests, AI-service tests and a real Chromium end-to-end interview flow
 
 ## Software to install
 
@@ -115,7 +115,18 @@ npm run dev
 
 Open http://localhost:5173, create an account and start a mock interview.
 
-## 5. Suggested demonstration flow
+## 5. Run the browser end-to-end test locally (optional)
+
+With MongoDB, the API, the Python AI service and the Vite frontend running in separate terminals, install Chromium and run:
+
+```powershell
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser test registers a candidate, reviews answers, reloads and resumes an unfinished interview, then completes the session. It uses the configured AI service; without Ollama, the expected review is the clearly labelled heuristic fallback.
+
+## 6. Suggested demonstration flow
 
 1. Register a new user account.
 2. Start a technical or HR mock interview.
