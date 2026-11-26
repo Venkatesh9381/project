@@ -100,7 +100,7 @@ Candidate answer: {payload.answer}
     strengths = result.get("strengths")
     improvements = result.get("improvements")
     structure = result.get("suggested_structure")
-    if not isinstance(score, int) or not isinstance(strengths, list) or not isinstance(improvements, list) or not isinstance(structure, str):
+    if isinstance(score, bool) or not isinstance(score, int) or not isinstance(strengths, list) or not isinstance(improvements, list) or not isinstance(structure, str):
         raise ValueError("Ollama returned an invalid review shape")
     return {
         "mode": "ollama",
