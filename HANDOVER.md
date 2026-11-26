@@ -14,7 +14,7 @@ This guide is for the person setting up and demonstrating the project. It assume
 
 ## Software to install
 
-- Node.js 20 LTS or newer
+- Node.js 22.12 or newer (Node.js 24 LTS recommended)
 - Python 3.10 or newer
 - MongoDB Community Server, or a MongoDB Atlas database
 - Git
