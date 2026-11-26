@@ -138,6 +138,7 @@ The Vite development server proxies `/api` requests to the API at `http://localh
 | POST | `/api/interviews` | Create an interview |
 | GET | `/api/interviews/:id` | Read own interview |
 | PATCH | `/api/interviews/:id` | Update own interview |
+| POST | `/api/questions` | Generate role, level and difficulty-aware interview questions |
 | POST | `/api/review` | Request authenticated answer review |
 | POST | `/api/transcribe` | Upload a short recording for local Whisper transcription |
 
@@ -152,7 +153,8 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Responsive dark/light dashboard and navigation
 - Registration and login screens connected to the API
 - bcrypt password hashing and short-lived JWT authentication
-- Interview setup for role, interview type, level and question count
+- Interview setup for role, interview type, experience level, difficulty and question count
+- Ollama-generated role-aware questions with a clearly labelled role-template fallback
 - Technical, HR and Mixed practice question tracks
 - Text answer entry, word count, review and next-question flow
 - Interview records, answers, scores and duration persisted through the authenticated API
