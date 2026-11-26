@@ -12,7 +12,7 @@ test('candidate can register, review answers, resume and complete an interview',
   await page.getByPlaceholder('At least 10 characters').fill(password);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: /Good afternoon/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
   await page.getByRole('button', { name: 'Mock interview' }).click();
   await page.getByLabel('Target role').fill('QA Automation Engineer');
   await page.getByLabel('Number of questions').selectOption('3');
@@ -55,7 +55,7 @@ test('candidate can register, review answers, resume and complete an interview',
   await expect(page.locator('.feedback-card')).toBeVisible();
   await page.getByRole('button', { name: 'Finish interview' }).click();
 
-  await expect(page.getByRole('heading', { name: /Good afternoon/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
   await page.getByRole('button', { name: 'Interview history' }).click();
   const completedRow = page.getByRole('row').filter({ hasText: 'QA Automation Engineer' });
   await expect(completedRow).toContainText('Completed');
