@@ -2,7 +2,7 @@
 
 A responsive mock-interview practice application for technical, HR and mixed interviews.
 
-> **Current status: active development.** Registration/login and authenticated interview persistence are connected to the API. Answer review calls the local AI service, which attempts Ollama and explicitly falls back to heuristic demo feedback when the local model is unavailable. Browser microphone capture and an optional local Whisper transcription endpoint are implemented, but still require hardware-level verification. A browser-based JavaScript coding practice workspace with sample tests is implemented. It is a learning runner, not a hardened service for executing untrusted code.
+> **Current status: local demonstration build.** Registration/login, authenticated interview persistence, answer review, interview history and resume, coding practice, and the core interview flow are implemented. CI verifies the frontend build, dependency audits, MongoDB-backed API integration and a real Chromium interview flow. Ollama model quality and Whisper microphone/transcription behavior still require verification on the recipient's own machine. The coding runner is for learning examples, not a hardened service for executing hostile code. No hosted production deployment is included.
 
 ## Stack
 
@@ -22,7 +22,9 @@ A responsive mock-interview practice application for technical, HR and mixed int
 │       ├── models/      # User and interview schemas
 │       └── routes/      # Auth and interview endpoints
 ├── ai-service/          # FastAPI + local Ollama review provider
-└── .github/workflows/   # Build and syntax checks
+├── e2e/                 # Playwright full-stack browser tests
+├── playwright.config.js # Chromium test configuration
+└── .github/workflows/   # Build, audits, integration and browser tests
 ```
 
 ## Requirements
