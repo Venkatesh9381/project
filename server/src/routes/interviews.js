@@ -44,6 +44,7 @@ router.patch('/:id', async (req, res, next) => {
   try {
     const schema = z.object({
       status: z.enum(['in_progress', 'completed', 'abandoned']).optional(),
+      currentQuestionIndex: z.number().int().min(0).max(4).optional(),
       overallScore: z.number().min(0).max(100).nullable().optional(),
       durationSeconds: z.number().int().min(0).max(86400).optional(),
       answers: z.array(z.object({

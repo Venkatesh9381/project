@@ -123,13 +123,13 @@ Open http://localhost:5173, create an account and start a mock interview.
 4. Answer a question in text.
 5. Review the answer and show whether the result is Ollama or heuristic demo mode.
 6. Move to the next question and finish the interview.
-7. Open Interview history, open a saved report, and review Performance to show persisted session information.
+7. Open Interview history, resume an in-progress session if one exists, then open a saved report and review Performance to show persisted session information.
 8. Open Coding practice, choose a challenge, edit the JavaScript and run sample tests.
 9. Optionally test microphone recording and local Whisper transcription.
 
 ## Important limitations
 
-- MongoDB, Ollama and Whisper require local configuration and were not verified on the recipient's hardware by the cloud repository workflow.
+- MongoDB, Ollama and Whisper require local configuration and were not verified on the recipient's hardware by the cloud repository workflow. In-progress sessions can be resumed from Interview history; the current answer is persisted when it is reviewed or when the user moves to the next question.
 - No live hosted deployment is included.
 - The coding practice workspace uses Monaco for JavaScript editing. Its Worker runner is intended for learning examples, not for securely running hostile code. A production assessment platform needs a hardened isolated execution service.
 - There is no real-time spoken AI interviewer, speech playback, password reset, refresh-token flow or account deletion flow.

@@ -72,18 +72,30 @@ test('registration, login and user-owned interview lifecycle work end to end', a
     .expect(200);
   assert.equal(listed.body.interviews.length, 1);
 
+  const draftAnswer = {
+    question: 'How would you design a stable automation framework?',
+    answer: 'I would separate test data, page objects, assertions and reporting.',
+    feedback: { score: 82, strengths: ['Clear structure'] }
+  };
   await request(app)
     .patch(`/api/interviews/${interviewId}`)
     .set('Authorization', `Bearer ${login.body.token}`)
-    .send({
-      status: 'completed',
-      overallScore: 82,
-      answers: [{
-        question: 'How would you design a stable automation framework?',
-        answer: 'I would separate test data, page objects, assertions and reporting.',
-        feedback: { score: 82, strengths: ['Clear structure'] }
-      }]
-    })
+    .send({ currentQuestionIndex: 1, durationSeconds: 45, answers: [draftAnswer] })
+    .expect(200);
+
+  const resumable = await request(app)
+    .get(`/api/interviews/${interviewId}`)
+    .set('Authorization', `Bearer ${login.body.token}`)
+    .expect(200);
+  assert.equal(resumable.body.interview.status, 'in_progress');
+  assert.equal(resumable.body.interview.currentQuestionIndex, 1);
+  assert.equal(resumable.body.interview.durationSeconds, 45);
+  assert.equal(resumable.body.interview.answers.length, 1);
+
+  await request(app)
+    .patch(`/api/interviews/${interviewId}`)
+    .set('Authorization', `Bearer ${login.body.token}`)
+    .send({ status: 'completed', overallScore: 82 })
     .expect(200);
 
   const saved = await request(app)
@@ -91,6 +103,7 @@ test('registration, login and user-owned interview lifecycle work end to end', a
     .set('Authorization', `Bearer ${login.body.token}`)
     .expect(200);
   assert.equal(saved.body.interview.status, 'completed');
+  assert.equal(saved.body.interview.currentQuestionIndex, 1);
   assert.equal(saved.body.interview.overallScore, 82);
   assert.equal(saved.body.interview.answers.length, 1);
 
@@ -127,5 +140,18 @@ test('interview creation rejects invalid setup and unauthenticated access', asyn
     .post('/api/interviews')
     .set('Authorization', `Bearer ${account.body.token}`)
     .send({ role: 'Q', interviewType: 'Other' })
+    .expect(400);
+
+  const valid = await request(app)
+    .post('/api/interviews')
+    .set('Authorization', `Bearer ${account.body.token}`)
+    .send({ role: 'QA Engineer', interviewType: 'Technical', questions: [
+      'How do you design reliable tests?', 'How do you investigate a flaky test?', 'How do you validate an API?'
+    ] })
+    .expect(201);
+  await request(app)
+    .patch(`/api/interviews/${valid.body.interview._id}`)
+    .set('Authorization', `Bearer ${account.body.token}`)
+    .send({ currentQuestionIndex: 5 })
     .expect(400);
 });
