@@ -72,19 +72,30 @@ test('registration, login and user-owned interview lifecycle work end to end', a
     .expect(200);
   assert.equal(listed.body.interviews.length, 1);
 
+  const draftAnswer = {
+    question: 'How would you design a stable automation framework?',
+    answer: 'I would separate test data, page objects, assertions and reporting.',
+    feedback: { score: 82, strengths: ['Clear structure'] }
+  };
   await request(app)
     .patch(`/api/interviews/${interviewId}`)
     .set('Authorization', `Bearer ${login.body.token}`)
-    .send({
-      status: 'completed',
-      currentQuestionIndex: 1,
-      overallScore: 82,
-      answers: [{
-        question: 'How would you design a stable automation framework?',
-        answer: 'I would separate test data, page objects, assertions and reporting.',
-        feedback: { score: 82, strengths: ['Clear structure'] }
-      }]
-    })
+    .send({ currentQuestionIndex: 1, durationSeconds: 45, answers: [draftAnswer] })
+    .expect(200);
+
+  const resumable = await request(app)
+    .get(`/api/interviews/${interviewId}`)
+    .set('Authorization', `Bearer ${login.body.token}`)
+    .expect(200);
+  assert.equal(resumable.body.interview.status, 'in_progress');
+  assert.equal(resumable.body.interview.currentQuestionIndex, 1);
+  assert.equal(resumable.body.interview.durationSeconds, 45);
+  assert.equal(resumable.body.interview.answers.length, 1);
+
+  await request(app)
+    .patch(`/api/interviews/${interviewId}`)
+    .set('Authorization', `Bearer ${login.body.token}`)
+    .send({ status: 'completed', overallScore: 82 })
     .expect(200);
 
   const saved = await request(app)
