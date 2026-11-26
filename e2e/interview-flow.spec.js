@@ -9,7 +9,7 @@ test('candidate can register, review answers, resume and complete an interview',
   await page.locator('.auth-switch button').click();
   await page.getByLabel('Your name').fill('Browser Test Candidate');
   await page.getByLabel('Email address').fill(email);
-  await page.getByLabel('Password').fill(password);
+  await page.getByPlaceholder('At least 10 characters').fill(password);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: /Good afternoon/ })).toBeVisible();
