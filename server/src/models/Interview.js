@@ -11,6 +11,8 @@ const interviewSchema = new mongoose.Schema({
   role: { type: String, required: true, maxlength: 120 },
   interviewType: { type: String, enum: ['Technical', 'HR', 'Mixed'], required: true },
   level: { type: String, enum: ['Beginner', 'Intermediate', 'Advanced'], default: 'Intermediate' },
+  difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' },
+  questions: { type: [String], default: [] },
   status: { type: String, enum: ['in_progress', 'completed', 'abandoned'], default: 'in_progress' },
   answers: { type: [answerSchema], default: [] },
   overallScore: { type: Number, min: 0, max: 100, default: null },
