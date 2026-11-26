@@ -73,7 +73,7 @@ app.post('/api/transcribe', requireAuth, audioLimiter, (req, res, next) => {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return res.status(response.status).json(data);
       return res.json(data);
-    } catch (error) {
+    } catch {
       return res.status(503).json({ error: 'Speech-to-text service is unavailable. Check the local Whisper setup.' });
     }
   });
@@ -122,6 +122,8 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = Number(process.env.PORT ?? 4000);
+
+export { app };
 
 export async function startServer() {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32 || process.env.JWT_SECRET === 'replace-with-a-long-random-secret') {
