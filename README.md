@@ -55,6 +55,8 @@ Copy `.env.example` to `.env` and configure:
 - `JWT_SECRET`: a unique random secret of at least 32 characters
 - `CLIENT_ORIGIN`: `http://localhost:5173`
 - `AI_SERVICE_URL`: `http://127.0.0.1:8000`
+- `HOST`: `127.0.0.1` (default; keeps the API reachable only from this computer)
+- `AI_REVIEW_TIMEOUT_MS` / `AI_QUESTIONS_TIMEOUT_MS`: how long the API waits for the AI service (defaults 60000 / 110000 ms). Keep them longer than the AI service's Ollama timeout so its labelled fallback can answer first; a timeout returns HTTP 504 with a clear message.
 
 Then start the API:
 
@@ -62,7 +64,7 @@ Then start the API:
 npm run dev
 ```
 
-API health check: http://localhost:4000/api/health.
+API health check: http://127.0.0.1:4000/api/health.
 
 ## 3. Run the AI service
 
@@ -109,10 +111,12 @@ ollama pull qwen2.5:3b
 Start FastAPI:
 
 ```bash
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Health check: http://localhost:8000/health.
+Health check: http://127.0.0.1:8000/health.
+
+`OLLAMA_TIMEOUT_SECONDS` (default 45) limits each Ollama call. If the model returns too few unique questions, the service retries once and then uses the labelled role-template fallback.
 
 If Ollama is not running or the model is unavailable, the AI service returns clearly labelled heuristic demo feedback. Do not mistake this fallback for an LLM evaluation.
 
@@ -125,9 +129,17 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173.
+Open http://localhost:5173 (or http://127.0.0.1:5173).
 
-The Vite development server proxies `/api` requests to the API at `http://localhost:4000`.
+The Vite development server proxies `/api` requests to the API at `http://127.0.0.1:4000`.
+
+### Local-only by default
+
+The Vite dev server, the API and the documented uvicorn command all bind to `127.0.0.1`, so nothing is reachable from other devices on your network and no public exposure is needed. Only change this deliberately (for example `npm run dev -- --host <address>` or `HOST=` in `server/.env`).
+
+### Internet requirement for the code editor
+
+The Monaco code editor used by Coding practice is loaded at runtime from the jsDelivr CDN by `@monaco-editor/react`. Coding practice therefore needs an internet connection; the rest of the app works offline once dependencies and models are installed. Bundling Monaco locally was reviewed but not adopted in this build because it adds several megabytes of editor and language-worker bundles and extra Vite worker configuration.
 
 ## API endpoints
 
@@ -173,6 +185,7 @@ Protected endpoints require `Authorization: Bearer <token>`. The frontend keeps 
 - Ollama model quality and hardware performance have not yet been verified on the handover machine.
 - No refresh-token, password-reset or account-deletion flow yet.
 - Voice capture and Whisper transcription are implemented as optional local features, but still need a real microphone/model test on the target machine. No real-time spoken AI interviewer or speech playback yet.
+- Coding practice needs internet access to load the Monaco editor from the jsDelivr CDN.
 - Coding practice provides a Monaco JavaScript editor and browser Worker runner for three sample challenges. The runner is not a production-grade sandbox or multi-language execution service. Never execute untrusted code inside the API process.
 - Dashboard score averages, completed-session counts, practice time and coaching notes are derived from saved interview records. Skill-level scoring and trend forecasting are not yet implemented.
 - This is a development build, not a production-ready service.

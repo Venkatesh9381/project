@@ -11,6 +11,32 @@ import authRoutes from './routes/auth.js';
 import interviewRoutes from './routes/interviews.js';
 import { requireAuth } from './middleware/auth.js';
 
+// The AI service waits up to OLLAMA_TIMEOUT_SECONDS (default 45 s) per Ollama call and then
+// falls back to labelled heuristic/template output. Question generation may make one retry
+// call, so its worst case is roughly twice the Ollama timeout. These API-side limits must be
+// longer than that so the AI service's own fallback can answer before the API gives up.
+export function timeoutFromEnv(name, fallbackMs, { min = 5000, max = 300000 } = {}) {
+  const value = Number(process.env[name]);
+  if (!Number.isFinite(value) || value <= 0) return fallbackMs;
+  return Math.min(Math.max(Math.round(value), min), max);
+}
+const AI_REVIEW_TIMEOUT_MS = timeoutFromEnv('AI_REVIEW_TIMEOUT_MS', 60000);
+const AI_QUESTIONS_TIMEOUT_MS = timeoutFromEnv('AI_QUESTIONS_TIMEOUT_MS', 110000);
+
+function aiServiceFailure(error, timeoutMs, unavailableBody, timeoutError) {
+  if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+    return {
+      status: 504,
+      body: {
+        ...unavailableBody,
+        error: timeoutError,
+        message: `The AI service did not respond within ${Math.round(timeoutMs / 1000)} seconds. Check that Ollama and the AI service are running, or raise the timeout in server/.env.`
+      }
+    };
+  }
+  return { status: 503, body: unavailableBody };
+}
+
 const app = express();
 app.disable('x-powered-by');
 app.use(helmet());
@@ -87,12 +113,13 @@ app.post('/api/questions', requireAuth, reviewLimiter, async (req, res) => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(parsed.data),
-      signal: AbortSignal.timeout(50000)
+      signal: AbortSignal.timeout(AI_QUESTIONS_TIMEOUT_MS)
     });
     if (!response.ok) throw new Error(`AI service returned ${response.status}`);
     res.json(await response.json());
-  } catch {
-    res.status(503).json({ error: 'Question generation service is unavailable', message: 'Start the Python AI service and try again.' });
+  } catch (error) {
+    const failure = aiServiceFailure(error, AI_QUESTIONS_TIMEOUT_MS, { error: 'Question generation service is unavailable', message: 'Start the Python AI service and try again.' }, 'Question generation timed out');
+    res.status(failure.status).json(failure.body);
   }
 });
 
@@ -104,12 +131,13 @@ app.post('/api/review', requireAuth, reviewLimiter, async (req, res) => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(parsed.data),
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(AI_REVIEW_TIMEOUT_MS)
     });
     if (!response.ok) throw new Error(`AI service returned ${response.status}`);
     res.json(await response.json());
-  } catch {
-    res.status(503).json({ error: 'AI review service is unavailable', message: 'Start the Python AI service and try again.', mode: 'unavailable' });
+  } catch (error) {
+    const failure = aiServiceFailure(error, AI_REVIEW_TIMEOUT_MS, { error: 'AI review service is unavailable', message: 'Start the Python AI service and try again.', mode: 'unavailable' }, 'AI review timed out');
+    res.status(failure.status).json(failure.body);
   }
 });
 
@@ -122,6 +150,9 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = Number(process.env.PORT ?? 4000);
+// Bind to the loopback interface by default so the API is not reachable from the network.
+// Set HOST=0.0.0.0 explicitly only if you understand the exposure.
+const host = process.env.HOST?.trim() || '127.0.0.1';
 
 export { app };
 
@@ -134,7 +165,7 @@ export async function startServer() {
   }
   await mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
   console.log('MongoDB connected');
-  return app.listen(port, () => console.log(`InterviewOS API listening on http://localhost:${port}`));
+  return app.listen(port, host, () => console.log(`InterviewOS API listening on http://${host}:${port}`));
 }
 
 if (process.env.NODE_ENV !== 'test') {
