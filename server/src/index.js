@@ -34,6 +34,7 @@ const audioUpload = multer({
 });
 const audioLimiter = rateLimit({ windowMs: 60 * 1000, limit: 8, standardHeaders: 'draft-7', legacyHeaders: false });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false });
+const reviewLimiter = rateLimit({ windowMs: 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false });
 app.get('/api/health', (_req, res) => {
   const connected = mongoose.connection.readyState === 1;
   res.status(connected ? 200 : 503).json({ status: connected ? 'ok' : 'degraded', service: 'interviewos-api', database: connected ? 'connected' : 'disconnected' });
@@ -69,7 +70,7 @@ app.post('/api/transcribe', requireAuth, audioLimiter, (req, res, next) => {
   });
 });
 
-app.post('/api/review', requireAuth, async (req, res) => {
+app.post('/api/review', requireAuth, reviewLimiter, async (req, res) => {
   const parsed = reviewSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid review request', details: parsed.error.flatten() });
   try {
