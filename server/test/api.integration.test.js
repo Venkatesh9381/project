@@ -141,4 +141,17 @@ test('interview creation rejects invalid setup and unauthenticated access', asyn
     .set('Authorization', `Bearer ${account.body.token}`)
     .send({ role: 'Q', interviewType: 'Other' })
     .expect(400);
+
+  const valid = await request(app)
+    .post('/api/interviews')
+    .set('Authorization', `Bearer ${account.body.token}`)
+    .send({ role: 'QA Engineer', interviewType: 'Technical', questions: [
+      'How do you design reliable tests?', 'How do you investigate a flaky test?', 'How do you validate an API?'
+    ] })
+    .expect(201);
+  await request(app)
+    .patch(`/api/interviews/${valid.body.interview._id}`)
+    .set('Authorization', `Bearer ${account.body.token}`)
+    .send({ currentQuestionIndex: 5 })
+    .expect(400);
 });
