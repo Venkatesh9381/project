@@ -162,7 +162,9 @@ export default function CodingPractice({ dark = true }) {
           </div>
           <div className="panel editor-panel">
             <div className="editor-toolbar"><span><Code2 size={15}/> solution.js</span><span className="language-chip">JavaScript</span></div>
-            <Editor height="300px" defaultLanguage="javascript" theme={dark ? "vs-dark" : "light"} value={code} onChange={value => { setCode(value ?? ''); setResults(null); }} options={{ minimap: { enabled: false }, fontSize: 13, scrollBeyondLastLine: false, automaticLayout: true, wordWrap: 'on', padding: { top: 14, bottom: 14 } }} />
+            {/* occurrencesHighlight is off because Monaco 0.52+ (WordHighlighter Delayer) rejects an unhandled
+                "Canceled" promise when the editor is disposed on navigation (microsoft/monaco-editor#4702). */}
+            <Editor height="300px" defaultLanguage="javascript" theme={dark ? "vs-dark" : "light"} value={code} onChange={value => { setCode(value ?? ''); setResults(null); }} options={{ minimap: { enabled: false }, occurrencesHighlight: 'off', fontSize: 13, scrollBeyondLastLine: false, automaticLayout: true, wordWrap: 'on', padding: { top: 14, bottom: 14 } }} />
             <div className="editor-footer"><span>JavaScript · {code.split('\n').length} lines</span><div><button className="btn btn-primary" onClick={runCode} disabled={running || !code.trim()}><Play size={14} fill="currentColor"/>{running ? 'Running…' : 'Run tests'}</button></div></div>
           </div>
           <div className="panel test-panel">

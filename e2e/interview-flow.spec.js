@@ -60,3 +60,27 @@ test('candidate can register, review answers, resume and complete an interview',
   const completedRow = page.getByRole('row').filter({ hasText: 'QA Automation Engineer' });
   await expect(completedRow).toContainText('Completed');
 });
+
+test('an ended interview appears in history immediately without a reload', async ({ page }) => {
+  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  await page.goto('/');
+  await page.locator('.auth-switch button').click();
+  await page.getByLabel('Your name').fill('Browser Test Candidate');
+  await page.getByLabel('Email address').fill(`browser-end-${suffix}@example.test`);
+  await page.getByPlaceholder('At least 10 characters').fill('InterviewOS-browser-test-2026');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Mock interview' }).click();
+  await page.getByLabel('Target role').fill('Ended Session Engineer');
+  await page.getByLabel('Number of questions').selectOption('3');
+  await page.getByRole('button', { name: /Start practice session/ }).click();
+  await expect(page.locator('.question-panel h2')).toBeVisible();
+  await page.getByRole('button', { name: 'End interview' }).click();
+
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Interview history' }).click();
+  const endedRow = page.getByRole('row').filter({ hasText: 'Ended Session Engineer' });
+  await expect(endedRow).toContainText('Abandoned');
+  await expect(endedRow).toContainText('Not scored');
+});

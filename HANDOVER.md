@@ -54,6 +54,8 @@ Edit `server/.env` and set:
 - `JWT_SECRET` to the generated random value (at least 32 characters)
 - `CLIENT_ORIGIN=http://localhost:5173`
 - `AI_SERVICE_URL=http://127.0.0.1:8000`
+- `HOST=127.0.0.1` (default; keeps the API local to this computer)
+- Optional: `AI_REVIEW_TIMEOUT_MS=60000` and `AI_QUESTIONS_TIMEOUT_MS=110000`
 
 Do not leave the example JWT value in place. The API intentionally refuses to start with a missing, short, or example placeholder secret. Never share or commit the generated secret or the `.env` file.
 
@@ -64,7 +66,7 @@ npm install
 npm run dev
 ```
 
-Keep this terminal open. The API starts only after it successfully connects to MongoDB. Check http://localhost:4000/api/health. The response should report database connected.
+Keep this terminal open. The API starts only after it successfully connects to MongoDB. Check http://127.0.0.1:4000/api/health. The response should report database connected.
 
 ## 3. Configure the AI service
 
@@ -87,7 +89,7 @@ ollama pull qwen2.5:3b
 Start the AI service from the `ai-service` directory:
 
 ```powershell
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Check http://127.0.0.1:8000/health.
@@ -114,6 +116,8 @@ npm run dev
 ```
 
 Open http://localhost:5173, create an account and start a mock interview.
+
+All three servers listen on `127.0.0.1` only by default, so the app is not reachable from other devices on the network. Coding practice loads the Monaco editor from the jsDelivr CDN, so it needs an internet connection.
 
 ## 5. Run the browser end-to-end test locally (optional)
 
@@ -142,6 +146,7 @@ The browser test registers a candidate, reviews answers, reloads and resumes an 
 
 - MongoDB, Ollama and Whisper require local configuration and were not verified on the recipient's hardware by the cloud repository workflow. In-progress sessions can be resumed from Interview history; the current answer is persisted when it is reviewed or when the user moves to the next question.
 - No live hosted deployment is included.
+- Coding practice needs internet access because Monaco is loaded from the jsDelivr CDN.
 - The coding practice workspace uses Monaco for JavaScript editing. Its Worker runner is intended for learning examples, not for securely running hostile code. A production assessment platform needs a hardened isolated execution service.
 - There is no real-time spoken AI interviewer, speech playback, password reset, refresh-token flow or account deletion flow.
 - Analytics use saved interview scores and feedback. They do not claim to measure separate communication, confidence or technical skill dimensions unless those metrics are explicitly captured.
@@ -156,3 +161,5 @@ The browser test registers a candidate, reviews answers, reloads and resumes an 
 - Voice transcription unavailable: install `requirements-voice.txt`, allow microphone access, and verify the Whisper model can load.
 - Browser microphone access generally requires localhost or HTTPS.
 - If Vite cannot call the API, confirm the API is running on port 4000 and use the Vite URL on port 5173.
+- Review or question generation shows "timed out": Ollama took longer than the configured limits. Check Ollama is running, or raise `OLLAMA_TIMEOUT_SECONDS` (ai-service) and `AI_REVIEW_TIMEOUT_MS` / `AI_QUESTIONS_TIMEOUT_MS` (server) together.
+- Voice transcription fails right after installing `requirements-voice.txt`: reinstall it so the pinned `requests` and `av<19` versions are used.
