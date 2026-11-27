@@ -38,3 +38,22 @@
 .report-answers{display:grid;gap:14px}.report-answer{padding:18px 20px}.report-question{display:flex;align-items:center;justify-content:space-between;gap:10px}.report-question>strong{font:700 13px Manrope,sans-serif;color:var(--accent)}.report-answer h2{font:700 15px/1.5 Manrope,sans-serif;margin:14px 0}.report-response{padding:13px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:9px}.report-response p{font-size:11px;line-height:1.7;color:var(--muted);white-space:pre-wrap;margin:8px 0 0}.report-feedback{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:15px}.report-feedback>div:not(.sample-answer){padding:12px;border:1px solid var(--border);border-radius:9px}.report-feedback strong{display:flex;align-items:center;gap:6px;font-size:10px}.report-feedback p{font-size:10px;line-height:1.6;color:var(--muted);margin:9px 0 0}.report-feedback .sample-answer{grid-column:1/-1}.report-feedback .sample-answer p{margin-top:6px}
 @media(max-width:620px){.report-answer{padding:14px}.report-feedback{grid-template-columns:1fr}.report-feedback .sample-answer{grid-column:auto}}
 .muted-note{color:var(--muted);font-style:italic}
+
+/* Mobile stabilisation: scrollable drawer, stacked session rows, touch targets */
+.auth-input{height:46px}.auth-input input{align-self:stretch;min-height:44px}
+@media(max-width:700px){.sidebar{min-height:0;height:100vh;height:100dvh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:calc(17px + env(safe-area-inset-bottom))}}
+@media(max-width:640px){.sessions-panel .table-wrap table{min-width:0}
+.sessions-panel table,.sessions-panel tbody{display:block;width:100%;white-space:normal}
+.sessions-panel thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sessions-panel tr{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:12px 0;border-top:1px solid var(--border);position:relative}
+.sessions-panel td{display:block;padding:0;border:0}
+.sessions-panel td:first-child{grid-column:1/-1;padding-right:52px}
+.sessions-panel td[data-label]::before{content:attr(data-label);display:block;font-size:8px;letter-spacing:.9px;text-transform:uppercase;color:var(--subtle);font-weight:700;margin-bottom:4px}
+.sessions-panel td.session-action{position:absolute;top:6px;right:0}}
+@media(pointer:coarse){.icon-btn{width:44px;height:44px;flex-shrink:0}
+.nav-link{height:44px;margin:2px 0}
+.btn,.select-button{min-height:44px}
+.more-btn{min-width:44px;min-height:44px}
+.text-link,.upgrade-card button,.bottom-banner button,.hint-toggle,.auth-switch button{min-height:44px;min-width:44px}
+.auth-eye{min-width:44px;min-height:44px;margin-right:-10px}
+select,input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]){min-height:44px}}
